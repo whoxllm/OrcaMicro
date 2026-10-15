@@ -10,3 +10,7 @@ local.properties
 native/build/
 native-out/
 app/src/main/jniLibs/
+
+# Signing keys never go in the repository (CI reads the release key from secrets)
+*.keystore
+*.jks

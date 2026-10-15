@@ -11,6 +11,15 @@ plugins {
 val orcaTag: String = rootProject.file("native/orca.env").readLines()
     .first { it.startsWith("ORCA_TAG=") }.substringAfter('=')
 
+// Release APKs are signed with the key named by these environment variables; CI fills them
+// from the repository's secrets. Without them the release APK gets the local debug key, which
+// is fine for testing but will not install over a published release.
+//   ORCAMICRO_KEYSTORE           path to the keystore file
+//   ORCAMICRO_KEYSTORE_PASSWORD  its password (also the key's password, as for PKCS12 keystores)
+//   ORCAMICRO_KEY_ALIAS          the key's alias, "orcamicro" if unset
+val releaseKeystore: File? = providers.environmentVariable("ORCAMICRO_KEYSTORE").orNull
+    ?.takeIf { it.isNotBlank() }?.let { file(it) }
+
 android {
     namespace = "io.github.whoxllm.orcamicro"
     compileSdk = 35
@@ -31,23 +40,24 @@ android {
     }
 
     signingConfigs {
-        // A fixed key so every CI build installs over the previous one. Replace it before
-        // publishing anywhere; it is checked in and therefore not secret.
-        create("sideload") {
-            storeFile = file("sideload.keystore")
-            storePassword = "orcamicro"
-            keyAlias = "orcamicro"
-            keyPassword = "orcamicro"
+        releaseKeystore?.let { keystore ->
+            require(keystore.isFile) { "ORCAMICRO_KEYSTORE points to a missing file: $keystore" }
+            val password = requireNotNull(providers.environmentVariable("ORCAMICRO_KEYSTORE_PASSWORD").orNull) {
+                "ORCAMICRO_KEYSTORE is set but ORCAMICRO_KEYSTORE_PASSWORD is not"
+            }
+            create("release") {
+                storeFile = keystore
+                storePassword = password
+                keyAlias = providers.environmentVariable("ORCAMICRO_KEY_ALIAS").orNull ?: "orcamicro"
+                keyPassword = password
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("sideload")
-        }
-        debug {
-            signingConfig = signingConfigs.getByName("sideload")
+            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
         }
     }
 

@@ -92,14 +92,30 @@ In CI, `.github/workflows/engine.yml` builds the engine (cached per dependency) 
 `native/` changes. `.github/workflows/build.yml` builds the APK and runs an end-to-end slicing
 test on an Android emulator.
 
+### Signing
+
+Release APKs are signed with a key that is kept only in the repository's Actions secrets, never
+in the code. CI publishes an APK only when it was signed with that key, so an APK on the
+releases page always comes from this repository. The release notes list the certificate's
+SHA-256 digest.
+
+| Secret | Value |
+|---|---|
+| `ORCAMICRO_KEYSTORE_BASE64` | the PKCS12 keystore, base64-encoded |
+| `ORCAMICRO_KEYSTORE_PASSWORD` | its password |
+
+The key's alias is `orcamicro`. Locally, point `ORCAMICRO_KEYSTORE`, `ORCAMICRO_KEYSTORE_PASSWORD`
+and optionally `ORCAMICRO_KEY_ALIAS` at a keystore; without them the release APK gets the debug
+key, which is fine for testing.
+
+Keep a copy of the keystore somewhere safe: Android only installs an update signed with the
+same key, so losing it means users have to uninstall before installing a new build.
+
 ## License
 
 OrcaMicro is free software under the [GNU Affero General Public License v3](LICENSE), the same
 license as OrcaSlicer, which it is built on. If you share the APK, share the source with it.
 This repository is that source.
-
-The APK is signed with a key checked in at `app/sideload.keystore` so that new builds install
-over old ones. It is not secret. Use your own key before distributing builds.
 
 OrcaSlicer is by SoftFever and contributors, building on Bambu Studio, PrusaSlicer and Slic3r.
 The printer, process and filament profiles come from OrcaSlicer and its contributors.

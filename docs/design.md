@@ -136,8 +136,8 @@ to Cool Plate, which gives PLA a 35 °C bed.
   and ccache, and dispatches the APK workflow.
 - `.github/workflows/build.yml` runs the core tests, compiles the app on every push, and once the
   engine is cached publishes the `OrcaMicro-apk` artifact and runs the smoke test.
-- APKs are signed with a checked-in sideload key so updates install over each other. Replace it
-  before distributing.
+- Release APKs are signed with a key held in the repository's Actions secrets; only APKs signed
+  with it are published.
 
 ## Licensing
 
