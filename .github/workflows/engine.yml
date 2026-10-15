@@ -1,0 +1,125 @@
+name: Native engine
+
+# Cross-compiles OrcaSlicer's slicing core for Android. Slow (hours on a cold cache), so it only
+# runs when native/ changes; the APK workflow picks the result up from the cache.
+on:
+  push:
+    paths:
+      - "native/**"
+      - ".github/workflows/engine.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: engine-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ANDROID_NDK_VERSION: 27.2.12479018
+  # Native work happens on the runner's large scratch disk, outside the checkout.
+  ORCAMICRO_WORK: /mnt/orcamicro
+
+jobs:
+  engine:
+    name: Native engine (arm64-v8a)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reuse an engine built from the same native sources
+        id: engine-cache
+        uses: actions/cache@v4
+        with:
+          path: native-out
+          key: engine-v1-${{ hashFiles('native/**') }}
+
+      - name: Prepare scratch disk and tools
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo mkdir -p "$ORCAMICRO_WORK" && sudo chown "$USER" "$ORCAMICRO_WORK"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ninja-build autoconf automake libtool ccache unzip patch
+          df -h / /mnt
+
+      - name: Set up the Android NDK
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        run: |
+          ndk="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          if [ ! -d "$ndk" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" > /dev/null
+          fi
+          echo "ANDROID_NDK_ROOT=$ndk" >> "$GITHUB_ENV"
+
+      - name: Fetch and patch OrcaSlicer
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        run: bash native/scripts/fetch-orca.sh
+
+      - name: Restore built dependencies
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/orcamicro/prefix
+          key: deps-v1-${{ github.run_id }}
+          restore-keys: deps-v1-
+
+      - name: Build dependencies
+        id: deps
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        run: bash native/scripts/build-deps.sh
+
+      - name: Name the dependency cache
+        id: deps-key
+        if: always() && steps.deps.outcome != 'skipped'
+        run: echo "key=deps-v1-$(cat "$ORCAMICRO_WORK"/prefix/.stamps/* 2>/dev/null | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      # Saved even when a later dependency fails, so the next run resumes where this one stopped.
+      - name: Save built dependencies
+        if: always() && steps.deps.outcome != 'skipped'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/orcamicro/prefix
+          key: ${{ steps.deps-key.outputs.key }}
+
+      - name: Restore compiler cache
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/orcamicro/ccache
+          key: ccache-v1-${{ github.run_id }}
+          restore-keys: ccache-v1-
+
+      - name: Build the engine
+        id: build-engine
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        env:
+          CCACHE_DIR: /mnt/orcamicro/ccache
+          CCACHE_MAXSIZE: 2G
+          CCACHE_COMPILERCHECK: content
+        run: bash native/scripts/build-engine.sh native-out
+
+      - name: Save compiler cache
+        if: always() && steps.build-engine.outcome != 'skipped'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/orcamicro/ccache
+          key: ccache-v1-${{ github.run_id }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-arm64-v8a
+          path: native-out
+          if-no-files-found: error
+
+  build-apk:
+    name: Start the APK build
+    needs: engine
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"

@@ -1,0 +1,12 @@
+# Gradle and Android Studio
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+
+# Native engine build outputs (built in CI or by native/scripts)
+native/build/
+native-out/
+app/src/main/jniLibs/

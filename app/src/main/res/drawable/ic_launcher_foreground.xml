@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A nozzle laying down three stacked layers. 108dp canvas, art kept in the 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- nozzle -->
+    <path android:fillColor="#FFE6EEF0" android:pathData="M44,26h20v8h-20z" />
+    <path android:fillColor="#FFE6EEF0" android:pathData="M47,34h14l-5,10h-4z" />
+    <!-- layers -->
+    <path android:fillColor="#FF64D6C2" android:pathData="M30,50h48a3,3 0,0 1,0 6h-48a3,3 0,0 1,0 -6z" />
+    <path android:fillColor="#FF2BB59B" android:pathData="M26,60h56a3,3 0,0 1,0 6h-56a3,3 0,0 1,0 -6z" />
+    <path android:fillColor="#FFFF8A3D" android:pathData="M22,70h64a3,3 0,0 1,0 6h-64a3,3 0,0 1,0 -6z" />
+</vector>

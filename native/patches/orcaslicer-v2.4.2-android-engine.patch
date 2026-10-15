@@ -1,0 +1,234 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8dcd4cf0..947c36cd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -125,6 +125,9 @@ option(SLIC3R_PCH               "Use precompiled headers" 1)
+ option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
+ option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
+ option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
++# OrcaMicro: build only libslic3r and the Android slicing engine (no GUI, no CLI executable).
++option(ORCAMICRO_ENGINE         "Build libslic3r plus the OrcaMicro Android engine only" 0)
++set(ORCAMICRO_DIR "" CACHE PATH "OrcaMicro native directory holding the engine bridge and shims")
+ # If SLIC3R_FHS is 1 -> SLIC3R_DESKTOP_INTEGRATION is always 0, othrewise variable.
+ CMAKE_DEPENDENT_OPTION(SLIC3R_DESKTOP_INTEGRATION "Allow performing desktop integration during runtime" 1 "NOT SLIC3R_FHS" 0)
+ 
+@@ -172,6 +175,10 @@ if (FLATPAK)
+     set(SLIC3R_DESKTOP_INTEGRATION OFF CACHE BOOL "" FORCE)
+ endif ()
+ 
++if (ORCAMICRO_ENGINE)
++    set(IS_CROSS_COMPILE TRUE)
++endif ()
++
+ if (IS_CROSS_COMPILE)
+     message("Detected cross compilation setup. Tests and encoding checks will be forcedly disabled!")
+     set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+@@ -629,13 +636,22 @@ find_package(TBB REQUIRED)
+ # The Intel TBB library will use the std::exception_ptr feature of C++11.
+ # add_definitions(-DTBB_USE_CAPTURED_EXCEPTION=0)
+ 
+-find_package(OpenSSL REQUIRED)
+-find_package(CURL REQUIRED)
++if (ORCAMICRO_ENGINE)
++    # libslic3r only needs MD5 from OpenSSL and nothing from libcurl.
++    add_subdirectory(${ORCAMICRO_DIR}/shims/openssl-md5 ${CMAKE_BINARY_DIR}/orcamicro-openssl-md5)
++    # libslic3r/Utils.hpp includes <openssl/md5.h>, and targets besides libslic3r include it.
++    include_directories(BEFORE ${ORCAMICRO_DIR}/shims/openssl-md5/include)
++else ()
++    find_package(OpenSSL REQUIRED)
++    find_package(CURL REQUIRED)
++endif ()
+ find_package(Freetype REQUIRED)
+ 
+ 
+ add_library(libcurl INTERFACE)
+-target_link_libraries(libcurl INTERFACE CURL::libcurl)
++if (NOT ORCAMICRO_ENGINE)
++    target_link_libraries(libcurl INTERFACE CURL::libcurl)
++endif ()
+ 
+ find_package(ZLIB REQUIRED)
+ target_link_libraries(libcurl INTERFACE ZLIB::ZLIB)
+@@ -688,6 +704,7 @@ endif ()
+ 
+ find_package(PNG REQUIRED)
+ 
++if (NOT ORCAMICRO_ENGINE)
+ set(OpenGL_GL_PREFERENCE "LEGACY")
+ find_package(OpenGL REQUIRED)
+ 
+@@ -696,6 +713,7 @@ if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+ endif()
+ 
+ find_package(glfw3 REQUIRED)
++endif ()
+ 
+ # Find the Cereal serialization library
+ find_package(cereal REQUIRED)
+@@ -756,6 +774,10 @@ if(SLIC3R_STATIC)
+     set(USE_BLOSC TRUE)
+ endif ()
+ 
++if (ORCAMICRO_ENGINE)
++    # OpenVDB is only used by SLA hollowing; the engine is FFF-only and builds without it.
++    message(STATUS "OrcaMicro engine: building without OpenVDB")
++else ()
+ find_package(OpenVDB 5.0 COMPONENTS openvdb)
+ if(OpenVDB_FOUND)
+     slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+@@ -765,6 +787,7 @@ else ()
+                    "You can try to specify the find module location of your "
+                    "OpenVDB installation with the OPENVDB_FIND_MODULE_PATH cache variable.")
+ endif ()
++endif ()
+ 
+ find_path(SPNAV_INCLUDE_DIR spnav.h)
+ if (SPNAV_INCLUDE_DIR)
+@@ -882,6 +905,9 @@ endfunction()
+ # libslic3r, OrcaSlicer GUI and the OrcaSlicer executable.
+ add_subdirectory(deps_src)
+ add_subdirectory(src)
++if (ORCAMICRO_ENGINE)
++    add_subdirectory(${ORCAMICRO_DIR}/bridge ${CMAKE_BINARY_DIR}/orcamicro-bridge)
++endif ()
+ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
+ 
+ add_dependencies(gettext_make_pot hintsToPot)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 73c767da..8a4cbf2d 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -13,6 +13,11 @@ find_package(libnoise REQUIRED)
+ 
+ add_subdirectory(libslic3r)
+ 
++if (ORCAMICRO_ENGINE)
++    # The engine links libslic3r into its own shared library; skip the GUI and the CLI executable.
++    return()
++endif ()
++
+ if (SLIC3R_GUI)
+     add_subdirectory(glad)
+     # imgui, imguizmo, and hidapi are now included from deps_src
+diff --git a/src/libslic3r/CMakeLists.txt b/src/libslic3r/CMakeLists.txt
+index 9b67d7ab..c2e99a13 100644
+--- a/src/libslic3r/CMakeLists.txt
++++ b/src/libslic3r/CMakeLists.txt
+@@ -609,7 +609,7 @@ target_link_libraries(libslic3r
+ if(NOT WIN32)
+     # Link freetype for OCCT dependency (CAD operations need font rendering)
+     target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
+-    if (NOT APPLE)
++    if (NOT APPLE AND NOT ANDROID)
+         target_link_libraries(libslic3r PRIVATE fontconfig)
+     endif()
+ endif()
+@@ -622,6 +622,9 @@ endif ()
+ 
+ if (TARGET OpenVDB::openvdb)
+     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
++else ()
++    # SLA hollowing compiles to no-ops without OpenVDB (see SLA/Hollowing.cpp).
++    target_compile_definitions(libslic3r PRIVATE ORCAMICRO_NO_OPENVDB)
+ endif()
+ 
+ if(WIN32)
+diff --git a/src/libslic3r/LocalesUtils.cpp b/src/libslic3r/LocalesUtils.cpp
+index d3210723..12fca857 100644
+--- a/src/libslic3r/LocalesUtils.cpp
++++ b/src/libslic3r/LocalesUtils.cpp
+@@ -3,6 +3,8 @@
+ #ifdef _WIN32
+     #include <charconv>
+ #endif
++#include <iomanip>
++#include <sstream>
+ #include <stdexcept>
+ 
+ #include <fast_float/fast_float.h>
+diff --git a/src/libslic3r/SLA/Hollowing.cpp b/src/libslic3r/SLA/Hollowing.cpp
+index df621277..39c4adb7 100644
+--- a/src/libslic3r/SLA/Hollowing.cpp
++++ b/src/libslic3r/SLA/Hollowing.cpp
+@@ -1,7 +1,10 @@
+ #include <functional>
++#include <numeric>
+ #include <optional>
+ 
++#ifndef ORCAMICRO_NO_OPENVDB
+ #include <libslic3r/OpenVDBUtils.hpp>
++#endif
+ #include <libslic3r/TriangleMesh.hpp>
+ #include <libslic3r/TriangleMeshSlicer.hpp>
+ #include <libslic3r/SLA/Hollowing.hpp>
+@@ -24,8 +27,10 @@ namespace sla {
+ 
+ struct Interior {
+     indexed_triangle_set mesh;
++#ifndef ORCAMICRO_NO_OPENVDB
+     openvdb::FloatGrid::Ptr gridptr;
+     mutable std::optional<openvdb::FloatGrid::ConstAccessor> accessor;
++#endif
+ 
+     double closing_distance = 0.;
+     double thickness = 0.;
+@@ -37,8 +42,10 @@ struct Interior {
+     void reset_accessor() const  // This resets the accessor and its cache
+     // Not a thread safe call!
+     {
++#ifndef ORCAMICRO_NO_OPENVDB
+         if (gridptr)
+             accessor = gridptr->getConstAccessor();
++#endif
+     }
+ };
+ 
+@@ -63,6 +70,11 @@ static InteriorPtr generate_interior_verbose(const TriangleMesh & mesh,
+                                              double voxel_scale,
+                                              double closing_dist)
+ {
++#ifdef ORCAMICRO_NO_OPENVDB
++    // Hollowing needs OpenVDB, which this build leaves out. No interior means no hollowing.
++    BOOST_LOG_TRIVIAL(warning) << "SLA hollowing is not available in this build";
++    return {};
++#else
+     double offset = voxel_scale * min_thickness;
+     double D = voxel_scale * closing_dist;
+     float  out_range = 0.1f * float(offset);
+@@ -106,6 +118,7 @@ static InteriorPtr generate_interior_verbose(const TriangleMesh & mesh,
+     interior->nb_out = narrowb;
+ 
+     return interior;
++#endif
+ }
+ 
+ InteriorPtr generate_interior(const TriangleMesh &   mesh,
+@@ -313,8 +326,10 @@ void hollow_mesh(TriangleMesh &mesh, const Interior &interior, int flags)
+ {
+     if (mesh.empty() || interior.mesh.empty()) return;
+ 
++#ifndef ORCAMICRO_NO_OPENVDB
+     if (flags & hfRemoveInsideTriangles && interior.gridptr)
+         remove_inside_triangles(mesh, interior);
++#endif
+ 
+     mesh.merge(TriangleMesh{interior.mesh});
+ }
+@@ -324,6 +339,9 @@ void hollow_mesh(TriangleMesh &mesh, const Interior &interior, int flags)
+ // the model surface.
+ static double get_distance_raw(const Vec3f &p, const Interior &interior)
+ {
++#ifdef ORCAMICRO_NO_OPENVDB
++    return std::nan("");
++#else
+     assert(interior.gridptr);
+ 
+     if (!interior.accessor) interior.reset_accessor();
+@@ -333,6 +351,7 @@ static double get_distance_raw(const Vec3f &p, const Interior &interior)
+         {v.x(), v.y(), v.z()});
+ 
+     return interior.accessor->getValue(grididx) ;
++#endif
+ }
+ 
+ struct TriangleBubble { Vec3f center; double R; };
