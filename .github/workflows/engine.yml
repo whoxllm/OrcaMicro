@@ -6,6 +6,8 @@ name: Native engine
 # APK workflow and scripts/fetch-prebuilt-engine.sh use the cache first, then the release.
 on:
   push:
+    # Branches only: a release tag reuses the engine its commit already has.
+    branches: ["**"]
     paths:
       - "native/**"
       - ".github/workflows/engine.yml"
@@ -30,6 +32,8 @@ jobs:
     timeout-minutes: 350
     permissions:
       contents: write
+    outputs:
+      built: ${{ steps.need.outputs.build }}
     steps:
       - uses: actions/checkout@v4
 
@@ -152,9 +156,12 @@ jobs:
           path: native-out
           if-no-files-found: error
 
+  # Only after compiling a new engine: the APK build started by the same push could not use it yet.
+  # A reused engine was already there for that build, and a second build would cancel it.
   build-apk:
     name: Start the APK build
     needs: engine
+    if: needs.engine.outputs.built == 'true'
     runs-on: ubuntu-24.04
     permissions:
       actions: write
