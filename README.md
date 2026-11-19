@@ -19,13 +19,11 @@ printer connections, and only when you use them.
 
 <p align="center">
   <img src="docs/images/home.png" width="240" alt="Home screen and recent projects">
-  <img src="docs/images/prepare.png" width="240" alt="Build plate, printer, filament and process profiles">
-  <img src="docs/images/preview.png" width="240" alt="Layer preview and toolpath filters">
+  <img src="docs/images/prepare.png" width="240" alt="Plate with a model and the printer, filament and process presets">
 </p>
 <p align="center">
-  <img src="docs/images/library.png" width="240" alt="Native model catalog with attribution and licenses">
-  <img src="docs/images/control.png" width="240" alt="Klipper controls and temperature charts on a test connection">
-  <img src="docs/images/print-setup.png" width="240" alt="Quick Print and imported filament presets">
+  <img src="docs/images/preview.png" width="240" alt="Toolpath preview with layer slider and line types">
+  <img src="docs/images/library.png" width="240" alt="Model catalog with source, author and license">
 </p>
 
 ## What it does

@@ -17,18 +17,12 @@
 ## Как выглядит
 
 <p align="center">
-  <img src="docs/images/prepare.png" width="240" alt="Подготовка: принтер, пластик, процесс и модель на столе">
-  <img src="docs/images/preview.png" width="240" alt="Предпросмотр: слои, типы линий, сохранение и загрузка G-code">
+  <img src="docs/images/home.png" width="240" alt="Главный экран и недавние проекты">
+  <img src="docs/images/prepare.png" width="240" alt="Стол с моделью, принтер, пластик и процесс">
 </p>
-
 <p align="center">
-  <img src="docs/images/library.png" width="240" alt="Каталоги, поиск, теги и сохранённые карточки моделей">
-  <img src="docs/images/control.png" width="240" alt="Пульт Klipper и температурные графики на тестовом подключении">
-</p>
-
-<p align="center">
-  <img src="docs/images/print-setup.png" width="240" alt="Quick Print: фото модели, свой филамент и подготовка печати">
-  <img src="docs/images/quick-print-bed.png" width="240" alt="Интерактивный стол в Quick Print">
+  <img src="docs/images/preview.png" width="240" alt="Предпросмотр траекторий: слои и типы линий">
+  <img src="docs/images/library.png" width="240" alt="Каталог моделей: источник, автор и лицензия">
 </p>
 
 ## Возможности
