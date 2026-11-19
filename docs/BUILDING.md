@@ -13,7 +13,7 @@ cd OrcaMicro
 
 ```sh
 ORCAMICRO_ORCA_DIR=/path/to/orca bash native/scripts/fetch-orca.sh --profiles-only
-# Быстрый вариант: опубликованный ARM64-движок OrcaMicro, проверяется по SHA-256.
+# Быстрый вариант: готовый ARM64-движок OrcaMicro для этих исходников native/.
 bash scripts/fetch-prebuilt-engine.sh
 sh ./gradlew :core:test :app:assembleDebug :app:assembleDebugAndroidTest \
   :app:lintDebug -PorcaResourcesDir=/path/to/orca/resources \
@@ -22,7 +22,7 @@ sh ./gradlew :core:test :app:assembleDebug :app:assembleDebugAndroidTest \
 
 ## Сборка движка из исходников
 
-Опубликованный native-артефакт может истечь. Тогда соберите движок из сохранённых исходников; дополнительно нужны CMake, Ninja, компилятор C/C++, NDK r27c и несколько часов. Используйте полную копию OrcaSlicer в отдельной папке, а не sparse checkout из быстрой сборки:
+Если вы меняли `native/`, готового движка для этих исходников ещё нет. Тогда соберите его сами; дополнительно нужны CMake, Ninja, компилятор C/C++, NDK r27c и несколько часов. Используйте полную копию OrcaSlicer в отдельной папке, а не sparse checkout из быстрой сборки:
 
 ```sh
 export ANDROID_NDK_ROOT=/path/to/ndk/27.2.12479018
@@ -35,7 +35,7 @@ sh ./gradlew :app:assembleDebug \
   -PorcaResourcesDir="$ORCAMICRO_ORCA_DIR/resources" --max-workers=2
 ```
 
-Исходники native bridge сохранены без изменений. Опубликованный движок собран в CI OrcaMicro на коммите `d92230eafe9a876baafa6ce623451d57ffa8fb5f`; `scripts/prebuilt-native.sha256` проверяет, что дерево `native/` с тех пор не менялось. SHA-256 ZIP: `58988793c158e9e117557958ead7e9571c9cad70ca2be1ceec8afc066cd5e7d3` (проверен по GitHub API).
+Workflow «Native engine» публикует каждый собранный движок пре-релизом `engine-<12 символов>` — это начало git-хеша папки `native/` (`git rev-parse HEAD:native`). Любое изменение в `native/` даёт новый тег, поэтому устаревший движок не подставится. `scripts/fetch-prebuilt-engine.sh` скачивает движок для текущих исходников и проверяет SHA-256; в форке он по умолчанию берёт релизы `whoxllm/OrcaMicro` (другой репозиторий задаёт `ORCAMICRO_ENGINE_REPO`).
 
 ## Каталог настроек и тесты
 
