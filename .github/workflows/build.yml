@@ -1,11 +1,18 @@
 name: Build APK
 
 # The Native engine workflow dispatches this one after it caches a new engine.
-# Pushing a tag such as v1.1.0 publishes a versioned release that the in-app updater offers.
+# A versioned release, which the in-app updater offers, comes from either pushing a tag such as
+# v1.1.0, or running this workflow on the default branch with a release version (Actions → Build
+# APK → Run workflow), which creates the tag itself.
 on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Release version to publish, e.g. 1.1.0 (default branch only). Leave empty for a normal build."
+        required: false
+        default: ""
 
 concurrency:
   group: build-${{ github.ref }}
@@ -62,8 +69,13 @@ jobs:
       # The version code only has to grow, so it follows the run number.
       - name: Version
         id: version
+        env:
+          RELEASE: ${{ github.event.inputs.release }}
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then name="${GITHUB_REF_NAME#v}"; else name=""; fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then name="${GITHUB_REF_NAME#v}"; else name="$RELEASE"; fi
+          if [ -n "$name" ] && ! [[ "$name" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "::error::Release version must be numbers separated by dots, such as 1.1.0 (got: $name)"; exit 1
+          fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "code=$((GITHUB_RUN_NUMBER + 100))" >> "$GITHUB_OUTPUT"
       # The release key lives only in the repository's secrets. Without them (forks, pull
@@ -164,9 +176,11 @@ jobs:
     # Only APKs signed with the release key: the default branch updates the rolling "latest"
     # pre-release, and a v* tag publishes the versioned release the in-app updater looks for.
     if: >-
-      needs.build.outputs.built == 'true' && needs.build.outputs.signed == 'true' &&
-      github.event_name == 'push' &&
-      (github.ref_name == github.event.repository.default_branch || startsWith(github.ref, 'refs/tags/v'))
+      needs.build.outputs.built == 'true' && needs.build.outputs.signed == 'true' && (
+        (github.event_name == 'push' &&
+          (github.ref_name == github.event.repository.default_branch || startsWith(github.ref, 'refs/tags/v'))) ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.release != '' &&
+          github.ref_name == github.event.repository.default_branch))
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -176,7 +190,7 @@ jobs:
           name: OrcaMicro-apk
           path: dist
       - name: Update the "latest" pre-release
-        if: github.ref_name == github.event.repository.default_branch
+        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
           CERTIFICATE: ${{ needs.build.outputs.certificate }}
@@ -187,7 +201,7 @@ jobs:
             --notes "Built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}. The slicing engine passed the emulator smoke test. Install OrcaMicro.apk on an Android 14+ ARM64 phone. Signing certificate SHA-256: ${CERTIFICATE}"
       # The updater accepts only this asset name, from this repository, with GitHub's SHA-256 digest.
       - name: Publish the versioned release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: needs.build.outputs.version != ''
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
@@ -195,6 +209,8 @@ jobs:
         run: |
           apk="dist/OrcaMicro-arm64-v${VERSION}.apk"
           mv dist/OrcaMicro.apk "$apk"
-          gh release create "$GITHUB_REF_NAME" "$apk" --repo "$GITHUB_REPOSITORY" --verify-tag \
+          # A pushed tag already exists; a run started with a release version creates it on this commit.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then where=(--verify-tag); else where=(--target "$GITHUB_SHA"); fi
+          gh release create "v${VERSION}" "$apk" --repo "$GITHUB_REPOSITORY" "${where[@]}" \
             --title "OrcaMicro ${VERSION}" --generate-notes \
             --notes "Install on an Android 14+ ARM64 phone. Signing certificate SHA-256: ${CERTIFICATE}"
