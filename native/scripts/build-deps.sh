@@ -92,34 +92,31 @@ autotools_env() {
 # ---- recipes -----------------------------------------------------------------------------
 
 build_expat() {
-    # Orca bundles expat in deps/EXPAT and links it as a system library.
-    cmake_build expat "$ORCA_DEPS/EXPAT/expat"
+    local src
+    src=$(unpack "$(fetch expat https://github.com/libexpat/libexpat/releases/download/R_2_10_0/expat-2.10.0.tar.gz \
+        5466a341f9c692ef7a958a6881311be597f8e1ce345984cf78414f54793dea4c)" expat)
+    cmake_build expat "$src" -DEXPAT_SHARED_LIBS=OFF -DEXPAT_DTD=ON -DEXPAT_GE=ON \
+        -DEXPAT_BUILD_TOOLS=OFF -DEXPAT_BUILD_EXAMPLES=OFF -DEXPAT_BUILD_TESTS=OFF \
+        -DEXPAT_BUILD_DOCS=OFF -DEXPAT_BUILD_FUZZERS=OFF -DEXPAT_BUILD_PKGCONFIG=OFF \
+        -DEXPAT_ENABLE_INSTALL=ON
 }
 
 build_png() {
     local src
-    src=$(unpack "$(fetch png https://github.com/glennrp/libpng/archive/refs/tags/v1.6.35.zip \
-        3d22d46c566b1761a0e15ea397589b3a5f36ac09b7c785382e6470156c04247f)" png)
+    src=$(unpack "$(fetch png https://github.com/glennrp/libpng/archive/refs/tags/v1.6.59.zip \
+        6fd97a1e5e2ac55cec0a538a9800a351eb3844086736291844ebd12db72ba433)" png)
     cmake_build png "$src" -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_PREFIX=prusaslicer_ -DPNG_TESTS=OFF \
         -DDISABLE_DEPENDENCY_TRACKING=OFF -DPNG_ARM_NEON=off
 }
 
 build_jpeg() {
     local src
-    src=$(unpack "$(fetch jpeg https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.0.1.zip \
-        d6d99e693366bc03897677650e8b2dfa76b5d6c54e2c9e70c03f0af821b0a52f)" jpeg)
+    src=$(unpack "$(fetch jpeg https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.2.0.zip \
+        1b4c2cb6cba1ca5e53b9e85eeeab02154cab4b70894c96e97a9c747a26d19d63)" jpeg)
     # Typed: libjpeg-turbo's own GNUInstallDirs turns an untyped relative LIBDIR into a path
     # under the current directory, which installs libjpeg.a outside the prefix.
     cmake_build jpeg "$src" -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DWITH_JPEG8=ON -DWITH_TURBOJPEG=OFF \
         -DWITH_SIMD=OFF -DCMAKE_INSTALL_LIBDIR:PATH=lib
-}
-
-build_freetype() {
-    local src
-    src=$(unpack "$(fetch freetype https://github.com/SoftFever/orca_deps/releases/download/freetype-2.12.1.tar.gz/freetype-2.12.1.tar.gz \
-        efe71fd4b8246f1b0b1b9bfca13cfff1c9ad85930340c27df469733bbb620938)" freetype)
-    cmake_build freetype "$src" -DFT_DISABLE_ZLIB=TRUE -DFT_DISABLE_BZIP2=TRUE -DFT_DISABLE_PNG=TRUE \
-        -DFT_DISABLE_HARFBUZZ=TRUE -DFT_DISABLE_BROTLI=TRUE
 }
 
 build_boost() {
@@ -145,8 +142,8 @@ build_tbb() {
 
 build_gmp() {
     local src
-    src=$(unpack "$(fetch gmp https://github.com/SoftFever/OrcaSlicer_deps/releases/download/gmp-6.2.1/gmp-6.2.1.tar.bz2 \
-        eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a36b4d7c)" gmp)
+    src=$(unpack "$(fetch gmp https://github.com/SoftFever/OrcaSlicer_deps/releases/download/gmp-6.3.0/gmp-6.3.0.tar.xz \
+        a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898)" gmp)
     apply_patches "$src" "$ORCA_DEPS/GMP/0001-GMP_GCC15.patch"
     (
         cd "$src"
@@ -184,8 +181,8 @@ build_eigen() {
 
 build_cgal() {
     local src
-    src=$(unpack "$(fetch cgal https://github.com/CGAL/cgal/releases/download/v5.6.3/CGAL-5.6.3.zip \
-        5d577acb4a9918ccb960491482da7a3838f8d363aff47e14d703f19fd84733d4)" cgal)
+    src=$(unpack "$(fetch cgal https://github.com/CGAL/cgal/releases/download/v6.2.1/CGAL-6.2.1.zip \
+        eebd737d9b7f0199647ba5c1f9f6c7a3d0651aacef9c2fd4dedc52da6c25edbe)" cgal)
     cmake_build cgal "$src" -DWITH_CGAL_Qt5=OFF -DCGAL_DISABLE_GMP=OFF
 }
 
@@ -218,36 +215,34 @@ build_draco() {
     cmake_build draco "$src" -DDRACO_TESTS=OFF -DDRACO_JS_GLUE=OFF -DCMAKE_INSTALL_LIBDIR=lib
 }
 
+build_slvs() {
+    local src
+    src=$(unpack "$(fetch slvs https://github.com/JacobStoren/SolveSpaceLib/archive/4d8704523e4bf212fadf5189f92484244f670fea.zip \
+        1c4bdde9c3c6ef20ea4b50b73601de56769f2eb131b36927d7c6489f102e6c30)" slvs)
+    cp "$ORCA_DEPS/SLVS/CMakeLists.txt.in" "$src/CMakeLists.txt"
+    cmake_build slvs "$src" -DCMAKE_INSTALL_LIBDIR=lib
+}
+
 build_occt() {
     local src
-    src=$(unpack "$(fetch occt https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V7_6_0.zip \
-        28334f0e98f1b1629799783e9b4d21e05349d89e695809d7e6dfa45ea43e1dbc)" occt)
-    apply_patches "$src" "$ORCA_DEPS/OCCT/0001-OCCT-fix.patch"
+    src=$(unpack "$(fetch occt https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V8_0_1.zip \
+        7c033d917ee8f040c0512d289dcc5f02c148889d5bac17c3e25639accb44f0da)" occt)
+    apply_patches "$src" "$ORCA_DEPS/OCCT/0001-BRepMesh-seam-pcurve-at-edge-parameter.patch"
     cmake_build occt "$src" \
         -DCMAKE_CXX_STANDARD=17 -DBUILD_LIBRARY_TYPE=Static \
-        -DUSE_TK=OFF -DUSE_TBB=OFF -DUSE_FFMPEG=OFF -DUSE_VTK=OFF -DUSE_FREEIMAGE=OFF -DUSE_RAPIDJSON=OFF \
-        -DUSE_OPENGL=OFF -DUSE_GLES2=OFF -DUSE_D3D=OFF \
+        -DUSE_TK=OFF -DUSE_TBB=OFF -DUSE_FREETYPE=OFF -DUSE_FFMPEG=OFF -DUSE_VTK=OFF \
+        -DUSE_FREEIMAGE=OFF -DUSE_RAPIDJSON=OFF -DUSE_OPENGL=OFF -DUSE_GLES2=OFF -DUSE_D3D=OFF \
         -DBUILD_DOC_Overview=OFF -DBUILD_MODULE_ApplicationFramework=OFF -DBUILD_MODULE_Draw=OFF \
-        -DBUILD_MODULE_FoundationClasses=OFF -DBUILD_MODULE_ModelingAlgorithms=OFF \
+        -DBUILD_MODULE_FoundationClasses=OFF -DBUILD_MODULE_ModelingAlgorithms=ON \
         -DBUILD_MODULE_ModelingData=OFF -DBUILD_MODULE_Visualization=OFF \
-        -DINSTALL_DIR_LAYOUT=Unix -DINSTALL_DIR_BIN=bin -DINSTALL_DIR_LIB=lib \
-        -DINSTALL_DIR_INCLUDE=include/opencascade -DINSTALL_DIR_CMAKE=lib/cmake/opencascade \
-        -DINSTALL_DIR_RESOURCE=share/opencascade/resources -DINSTALL_DIR_DATA=share/opencascade/data \
-        -DINSTALL_DIR_SAMPLES=share/opencascade/samples -DINSTALL_DIR_TESTS=share/opencascade/tests \
-        -DINSTALL_DIR_DOC=share/doc/opencascade -DINSTALL_DIR_SCRIPT=bin \
-        -D3RDPARTY_DIR="$ORCAMICRO_PREFIX" \
-        -D3RDPARTY_FREETYPE_DIR="$ORCAMICRO_PREFIX" \
-        -D3RDPARTY_FREETYPE_INCLUDE_DIR_ft2build="$ORCAMICRO_PREFIX/include/freetype2" \
-        -D3RDPARTY_FREETYPE_INCLUDE_DIR_freetype2="$ORCAMICRO_PREFIX/include/freetype2" \
-        -D3RDPARTY_FREETYPE_LIBRARY="$ORCAMICRO_PREFIX/lib/libfreetype.a" \
-        -D3RDPARTY_FREETYPE_LIBRARY_DIR="$ORCAMICRO_PREFIX/lib"
+        -DINSTALL_DIR_LAYOUT=Unix -DINSTALL_DIR_BIN=bin/occt -DINSTALL_DIR_LIB=lib/occt \
+        -DINSTALL_DIR_INCLUDE=include/occt -DINSTALL_DIR_CMAKE=lib/cmake/occt
 }
 
 build_opencv() {
     local src
-    src=$(unpack "$(fetch opencv https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz \
-        1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277)" opencv)
-    apply_patches "$src" "$ORCA_DEPS/OpenCV/0001-vs.patch" "$ORCA_DEPS/OpenCV/0002-clang19-macos.patch"
+    src=$(unpack "$(fetch opencv https://github.com/opencv/opencv/archive/refs/tags/4.14.0.tar.gz \
+        ee8fb9b30eb60850431b4656447080e3737b56e45719c92b67f245950609f86e)" opencv)
     # Orca only uses OpenCV core (k-means for OBJ colours). Image codecs stay off so OpenCV's
     # bundled libpng cannot clash with ours.
     cmake_build opencv "$src" \
@@ -259,16 +254,19 @@ build_opencv() {
         -DBUILD_ZLIB=OFF -DBUILD_PNG=OFF -DBUILD_JPEG=OFF -DBUILD_TIFF=OFF -DBUILD_WEBP=OFF \
         -DBUILD_OPENJPEG=OFF -DBUILD_JASPER=OFF -DBUILD_OPENEXR=OFF -DBUILD_TBB=OFF -DBUILD_IPP_IW=OFF \
         -DWITH_PNG=OFF -DWITH_JPEG=OFF -DWITH_TIFF=OFF -DWITH_WEBP=OFF -DWITH_OPENJPEG=OFF -DWITH_JASPER=OFF \
-        -DWITH_OPENEXR=OFF -DWITH_IMGCODEC_HDR=OFF -DWITH_IMGCODEC_SUNRASTER=OFF -DWITH_IMGCODEC_PXM=OFF \
-        -DWITH_IMGCODEC_PFM=OFF -DWITH_IPP=OFF -DWITH_ITT=OFF -DWITH_EIGEN=OFF -DWITH_LAPACK=OFF \
+        -DWITH_OPENEXR=OFF -DWITH_AVIF=OFF -DWITH_IMGCODEC_GIF=OFF -DWITH_IMGCODEC_HDR=OFF \
+        -DWITH_IMGCODEC_SUNRASTER=OFF -DWITH_IMGCODEC_PXM=OFF -DWITH_IMGCODEC_PFM=OFF \
+        -DWITH_IPP=OFF -DWITH_ITT=OFF -DWITH_EIGEN=OFF -DWITH_LAPACK=OFF \
         -DWITH_OPENCL=OFF -DWITH_CUDA=OFF -DWITH_FFMPEG=OFF -DWITH_GSTREAMER=OFF -DWITH_1394=OFF \
         -DWITH_GTK=OFF -DWITH_QUIRC=OFF -DWITH_ADE=OFF -DWITH_PROTOBUF=OFF -DWITH_VTK=OFF -DWITH_OPENMP=OFF \
+        -DWITH_OPENVINO=OFF -DWITH_INF_ENGINE=OFF -DWITH_NGRAPH=OFF \
         -DWITH_CAROTENE=OFF -DWITH_KLEIDICV=OFF -DWITH_ANDROID_MEDIANDK=OFF -DWITH_ANDROID_NATIVE_CAMERA=OFF \
         -DCV_TRACE=OFF -DENABLE_PRECOMPILED_HEADERS=OFF -DOPENCV_GENERATE_SETUPVARS=OFF \
+        -DOPENCV_INSTALL_FFMPEG_DOWNLOAD_SCRIPT=OFF \
         -DINSTALL_TESTS=OFF -DINSTALL_C_EXAMPLES=OFF -DINSTALL_PYTHON_EXAMPLES=OFF
 }
 
-ALL_DEPS=(expat png jpeg freetype boost tbb gmp mpfr eigen cgal cereal nlopt libnoise draco occt opencv)
+ALL_DEPS=(expat png jpeg boost tbb gmp mpfr eigen cgal cereal nlopt libnoise draco slvs occt opencv)
 
 run_dep() {
     local name=$1 key stamp="$ORCAMICRO_PREFIX/.stamps/$1"
