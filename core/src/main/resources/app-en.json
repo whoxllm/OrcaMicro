@@ -689,7 +689,7 @@
   "Отправит M112 через OctoPrint. Восстановление зависит от прошивки принтера.": "Sends M112 through OctoPrint. Recovery depends on your printer firmware.",
   "Превышено время ожидания": "Connection timed out",
   "С паузами": "Including pauses",
-  "STL, ZIP, геометрия и параметры проектов 3MF; один объект и материал, 638 параметров, свои профили, каталоги моделей и просмотр слоёв. Klipper / OctoPrint, статистика и два языка. Покраска, мультиматериальная нарезка и раздельные столы 3MF пока не поддерживаются. Совместимость 90% не измерена.": "STL, ZIP, 3MF geometry and project settings; one object and material, 638 settings, custom presets, model catalogs and toolpath preview. Klipper / OctoPrint, statistics and two languages. Painting, multimaterial slicing and separate 3MF plates are not supported. “90% compatibility” has not been measured.",
+  "STL, ZIP, геометрия и параметры проектов 3MF; один объект и материал, 751 параметр, свои профили, каталоги моделей и просмотр слоёв. Klipper / OctoPrint, статистика и два языка. Покраска, мультиматериальная нарезка и раздельные столы 3MF пока не поддерживаются. Совместимость 90% не измерена.": "STL, ZIP, 3MF geometry and project settings; one object and material, 751 settings, custom presets, model catalogs and toolpath preview. Klipper / OctoPrint, statistics and two languages. Painting, multimaterial slicing and separate 3MF plates are not supported. “90% compatibility” has not been measured.",
   "Проверка файла модели…": "Checking model file…",
   "Профиль с этим именем будет обновлён.": "The preset with this name will be updated.",
   "* Не сохранено в профиль": "* Unsaved preset changes",
