@@ -93,7 +93,7 @@ shutdown, and Klipper then needs `FIRMWARE_RESTART`. For normal control use Paus
 | One-finger drag | Orbit the camera |
 | Two-finger drag | Pan |
 | Pinch | Zoom |
-| Double-tap the model, hold the second touch and drag | Move the model on the plate |
+| Tap the model, then drag it | Move the model on the plate |
 
 **Placement** (**Edit** on narrow screens) sets exact position, rotation and scale.
 

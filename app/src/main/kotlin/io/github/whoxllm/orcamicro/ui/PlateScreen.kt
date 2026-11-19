@@ -90,7 +90,7 @@ fun PlateScreen(state: UiState, viewModel: MainViewModel) {
                     r.setModel(state.model?.placed, state.model?.fits ?: true)
                 }
                 Surface(Modifier.align(Alignment.TopStart).padding(8.dp), shape = MaterialTheme.shapes.extraSmall, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
-                    Text(tr("Стол 1 • двойной тап — перенос"), Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium)
+                    Text(tr("Нажмите на модель, чтобы выбрать её, затем перетащите"), Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium)
                 }
                 val model = state.model
                 if (model == null) {

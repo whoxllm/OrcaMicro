@@ -35,7 +35,7 @@ class TouchWorkflowTest {
         if(view is ViewGroup) for(i in 0 until view.childCount) surface(view.getChildAt(i))?.let { return it }
         return null
     }
-    @Test fun legacyPresetsMigrateLibrarySurvivesSwitchAndDoubleTapDragsWithoutRebuildingMesh() {
+    @Test fun legacyPresetsMigrateLibrarySurvivesSwitchAndTapThenDragMovesWithoutRebuildingMesh() {
         val store=SettingsStore(context)
         val previous=store.load()
         val model=store.modelFile.takeIf { it.isFile }?.readBytes()
@@ -85,12 +85,14 @@ endsolid triangle
                 val v=gl!!; val x=v.width/2f; val y=v.height/2f
                 val time=SystemClock.uptimeMillis()
                 main {
-                    fun event(at: Long,action: Int,px: Float,py: Float) { MotionEvent.obtain(time,at,action,px,py,0).also { v.dispatchTouchEvent(it); it.recycle() } }
-                    event(time,MotionEvent.ACTION_DOWN,x,y); event(time+40,MotionEvent.ACTION_UP,x,y)
-                    event(time+120,MotionEvent.ACTION_DOWN,x+3,y+2)
-                    event(time+180,MotionEvent.ACTION_MOVE,x+33,y+12)
-                    event(time+240,MotionEvent.ACTION_MOVE,x+63,y+22)
-                    event(time+280,MotionEvent.ACTION_UP,x+63,y+22)
+                    fun event(down: Long, at: Long, action: Int, px: Float, py: Float) { MotionEvent.obtain(down,at,action,px,py,0).also { v.dispatchTouchEvent(it); it.recycle() } }
+                    // Tap the model to select it, then drag it to move.
+                    event(time,time,MotionEvent.ACTION_DOWN,x,y); event(time,time+40,MotionEvent.ACTION_UP,x,y)
+                    val dragDown = time + 200
+                    event(dragDown,dragDown,MotionEvent.ACTION_DOWN,x+3,y+2)
+                    event(dragDown,dragDown+60,MotionEvent.ACTION_MOVE,x+33,y+12)
+                    event(dragDown,dragDown+120,MotionEvent.ACTION_MOVE,x+63,y+22)
+                    event(dragDown,dragDown+160,MotionEvent.ACTION_UP,x+63,y+22)
                 }
                 await { vm.state.value.model!!.placement != start.placement }
                 val bed=vm.state.value.bed!!

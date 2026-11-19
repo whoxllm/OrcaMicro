@@ -16,16 +16,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.math.abs
 
-/** Exercises Android's real gesture detectors, including the double-tap quick-scale threshold. */
+/** Exercises tap-to-select, drag-to-move, orbit, and pinch on Android's real MotionEvents. */
 @RunWith(AndroidJUnit4::class)
 class SceneGestureTest {
-    @Test fun doubleTapDragLeavesCameraFixedWhilePinchAndOrbitStillWork() {
+    @Test fun tapToSelectDragMovesModelWhileOffModelDragAndPinchControlCamera() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            val mesh = Mesh(floatArrayOf(100f,100f,0f, 120f,100f,0f, 110f,120f,20f))
             val renderer = PlateRenderer().apply {
                 camera.frame(110f, 110f, 0f, 132f)
                 setBed(BedShape.rectangle(0f, 0f, 220f, 220f), 250f)
-                setModel(Mesh(floatArrayOf(100f,100f,0f, 120f,100f,0f, 110f,120f,20f)), true)
+                setModel(mesh, true)
             }
             lateinit var surface: SceneSurface
             var movedX = 0f
@@ -58,30 +59,47 @@ class SceneGestureTest {
                     }
                 }
                 fun one(down: Long, at: Long, action: Int, px: Float, py: Float) = event(down, at, action, listOf(px to py))
-                fun doubleTapDrag(dy: Float) {
+                fun tap(px: Float, py: Float) {
+                    one(time, time, MotionEvent.ACTION_DOWN, px, py)
+                    one(time, time + 40, MotionEvent.ACTION_UP, px, py)
+                    time += 300
+                }
+                fun drag(sx: Float, sy: Float, dx: Float, dy: Float) {
+                    one(time, time, MotionEvent.ACTION_DOWN, sx, sy)
+                    for (i in 1..4) one(time, time + i * 60, MotionEvent.ACTION_MOVE, sx + dx * i / 4f, sy + dy * i / 4f)
+                    one(time, time + 300, MotionEvent.ACTION_UP, sx + dx, sy + dy)
+                    time += 500
+                }
+
+                // 1. Tap the model to select it.
+                assertFalse("Model starts unselected", renderer.modelSelected)
+                tap(x, y)
+                assertTrue("Tapping the model must select it", renderer.modelSelected)
+
+                // 2. Drag starting on the selected model moves it without moving the camera.
+                fun selectedDrag(dy: Float) {
                     movedX = 0f; movedY = 0f; renderer.offsetX = 0f; renderer.offsetY = 0f
                     val before = snapshot()
                     val ends = dragEnds
-                    one(time, time, MotionEvent.ACTION_DOWN, x, y)
-                    one(time, time + 40, MotionEvent.ACTION_UP, x, y)
-                    one(time + 120, time + 120, MotionEvent.ACTION_DOWN, x, y)
-                    // 200px exceeds Android's anchored scale slop; the old short drag test did not.
-                    for (i in 1..4) one(time + 120, time + 120 + i * 60, MotionEvent.ACTION_MOVE, x, y + dy * i / 4f)
-                    one(time + 120, time + 420, MotionEvent.ACTION_UP, x, y + dy)
-                    assertTrue("Model must move with the second tap held", abs(movedX) + abs(movedY) > 1f)
+                    drag(x, y, 0f, dy)
+                    assertTrue("Selected model must move when dragged", abs(movedX) + abs(movedY) > 1f)
                     assertEquals("One completed drag", ends + 1, dragEnds)
-                    assertArrayEquals("Double-tap model drag must not zoom, pan or orbit the camera", before, snapshot(), 0f)
-                    time += 1000
+                    assertArrayEquals("Model drag must not zoom, pan or orbit the camera", before, snapshot(), 0f)
                 }
-                doubleTapDrag(200f)
-                doubleTapDrag(-200f)
+                selectedDrag(200f)
+                selectedDrag(-200f)
 
-                // A real two-finger pinch still changes the zoom, with a stationary centroid.
+                // 3. Drag starting off the model rotates the camera even while selected.
+                val beforeOrbit = snapshot()
+                val modelBeforeOrbit = movedX to movedY
+                drag(20f, 20f, 100f, 50f)
+                assertFalse("Dragging off the model must orbit the camera", beforeOrbit.contentEquals(snapshot()))
+                assertEquals("Orbit must not move the model", modelBeforeOrbit, movedX to movedY)
+
+                // 4. Two-finger pinch zooms without moving the model even while selected.
                 val beforePinch = snapshot()
                 val nearBefore = renderer.camera.clipPlanes()[0]
-                val modelBefore = movedX to movedY
-                // The minimum span is specified in physical mm and varies with
-                // the device DPI. Stay above it, along the phone's longer axis.
+                val modelBeforePinch = movedX to movedY
                 val config = ViewConfiguration.get(surface.context)
                 val step = config.scaledTouchSlop * 2f
                 val initialSpan = config.scaledMinimumScalingSpan / 2f + step
@@ -93,18 +111,26 @@ class SceneGestureTest {
                 }
                 event(time, time + 340, MotionEvent.ACTION_POINTER_UP or (1 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), pair(initialSpan + 4 * step))
                 one(time, time + 380, MotionEvent.ACTION_UP, x, y - initialSpan - 4 * step)
+                time += 500
                 assertFalse("Pinch must still change the camera", beforePinch.contentEquals(snapshot()))
                 assertTrue("Spreading fingers must zoom in", renderer.camera.clipPlanes()[0] < nearBefore)
-                assertEquals("Pinch must not move the model", modelBefore, movedX to movedY)
+                assertEquals("Pinch must not move the model", modelBeforePinch, movedX to movedY)
 
-                // A normal one-finger swipe remains a camera orbit.
-                time += 1000
-                val beforeOrbit = snapshot()
-                one(time, time, MotionEvent.ACTION_DOWN, 20f, 20f)
-                one(time, time + 80, MotionEvent.ACTION_MOVE, 120f, 70f)
-                one(time, time + 120, MotionEvent.ACTION_UP, 120f, 70f)
-                assertFalse("Single-finger orbit must still work", beforeOrbit.contentEquals(snapshot()))
-                assertEquals("Orbit must not move the model", modelBefore, movedX to movedY)
+                // 5. Tapping empty space deselects; tapping model toggles; replacing model clears selection.
+                tap(20f, 20f)
+                assertFalse("Tapping empty space must deselect", renderer.modelSelected)
+
+                renderer.camera.frame(110f, 110f, 0f, 132f)
+                movedX = 0f; movedY = 0f; renderer.offsetX = 0f; renderer.offsetY = 0f
+                tap(x, y)
+                assertTrue("Tapping model selects it again", renderer.modelSelected)
+                tap(x, y)
+                assertFalse("Tapping selected model deselects it", renderer.modelSelected)
+
+                tap(x, y)
+                assertTrue(renderer.modelSelected)
+                renderer.setModel(null, true)
+                assertFalse("Removing model clears selection", renderer.modelSelected)
             }
         }
     }

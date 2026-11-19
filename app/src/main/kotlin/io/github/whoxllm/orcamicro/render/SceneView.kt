@@ -3,20 +3,22 @@ package io.github.whoxllm.orcamicro.render
 import android.annotation.SuppressLint
 import android.content.Context
 import android.opengl.GLSurfaceView
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
-import android.view.GestureDetector
+import android.view.ScaleGestureDetector
+import android.view.ViewConfiguration
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.key
-import android.view.ScaleGestureDetector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlin.math.hypot
 
 /**
  * Hosts a [SceneRenderer] in Compose. One finger orbits, two fingers pan, pinch zooms.
@@ -48,7 +50,10 @@ fun <R : SceneRenderer> SceneView(
     key(maxWidth, maxHeight) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
-        factory = { context -> SceneSurface(context, renderer).also { holder[0] = it } },
+        factory = { context ->
+            (renderer as? PlateRenderer)?.modelSelected = false
+            SceneSurface(context, renderer).also { holder[0] = it }
+        },
         update = { view ->
             renderer.requestFrame = { view.requestRender() }
             view.onModelDragEnd = onModelDragEnd
@@ -65,24 +70,15 @@ fun <R : SceneRenderer> SceneView(
 internal class SceneSurface(context: Context, private val renderer: SceneRenderer) : GLSurfaceView(context) {
     var onModelDrag: ((Float, Float) -> Unit)? = null
     var onModelDragEnd: (() -> Unit)? = null
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
     private var dragging = false
+    private var didDragMove = false
+    private var movedBeyondSlop = false
+    private var wasMultiTouch = false
     private var anchor: FloatArray? = null
     private var lastDragAt = 0L
-    private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
-        override fun onDown(e: MotionEvent) = true
-        override fun onDoubleTap(e: MotionEvent): Boolean = onModelDrag != null
-        override fun onDoubleTapEvent(e: MotionEvent): Boolean {
-            // onDoubleTap receives the FIRST tap's coordinates; anchor the drag to
-            // the actual second DOWN to avoid a jump when the taps differ slightly.
-            if(e.actionMasked == MotionEvent.ACTION_DOWN) {
-                dragging = onModelDrag != null && (renderer as? PlateRenderer)?.hitModel(e.x, e.y, width, height) == true
-                anchor = if (dragging) renderer.camera.bedPoint(e.x, e.y, width, height) else null
-                lastDragAt = 0L
-                if (dragging) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-            }
-            return dragging
-        }
-    })
+    private var downX = 0f
+    private var downY = 0f
     private var lastX = 0f
     private var lastY = 0f
     private var lastFocusX = 0f
@@ -96,8 +92,7 @@ internal class SceneSurface(context: Context, private val renderer: SceneRendere
             return true
         }
     }).apply {
-        // Android's single-finger double-tap-and-drag zoom conflicts with model
-        // placement. Keep zoom on the two-finger pinch gesture instead.
+        // Keep zoom on the two-finger pinch gesture only.
         isQuickScaleEnabled = false
     }
 
@@ -110,18 +105,30 @@ internal class SceneSurface(context: Context, private val renderer: SceneRendere
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        gestures.onTouchEvent(event)
         scaleDetector.onTouchEvent(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 parent?.requestDisallowInterceptTouchEvent(true)
                 pointers = 1
+                downX = event.x
+                downY = event.y
                 lastX = event.x
                 lastY = event.y
+                movedBeyondSlop = false
+                wasMultiTouch = false
+                didDragMove = false
+                val plate = renderer as? PlateRenderer
+                dragging = onModelDrag != null && plate != null && plate.modelSelected &&
+                    plate.hitModel(event.x, event.y, width, height)
+                anchor = if (dragging) renderer.camera.bedPoint(event.x, event.y, width, height) else null
+                lastDragAt = 0L
             }
             MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> {
-                if(dragging) onModelDragEnd?.invoke()
-                dragging = false; anchor = null
+                wasMultiTouch = true
+                if (dragging && didDragMove) onModelDragEnd?.invoke()
+                dragging = false
+                didDragMove = false
+                anchor = null
                 pointers = if (event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) event.pointerCount else event.pointerCount - 1
                 focus(event, excluding = if (event.actionMasked == MotionEvent.ACTION_POINTER_UP) event.actionIndex else -1)
                 if (pointers == 1) {
@@ -131,16 +138,21 @@ internal class SceneSurface(context: Context, private val renderer: SceneRendere
                 }
             }
             MotionEvent.ACTION_MOVE -> {
+                if (pointers == 1 && !movedBeyondSlop && hypot(event.x - downX, event.y - downY) > touchSlop) {
+                    movedBeyondSlop = true
+                }
                 if (dragging && pointers == 1) {
-                    if (event.eventTime - lastDragAt >= 32) {
+                    if (movedBeyondSlop && event.eventTime - lastDragAt >= 32) {
                         val point = renderer.camera.bedPoint(event.x, event.y, width, height)
                         val from = anchor
                         if (point != null && from != null) {
-                            onModelDrag?.invoke(point[0]-from[0], point[1]-from[1])
-                            anchor = point; lastDragAt = event.eventTime
+                            onModelDrag?.invoke(point[0] - from[0], point[1] - from[1])
+                            anchor = point
+                            lastDragAt = event.eventTime
+                            didDragMove = true
                         }
                     }
-                } else if (pointers == 1 && !scaleDetector.isInProgress) {
+                } else if (pointers == 1 && !scaleDetector.isInProgress && (movedBeyondSlop || wasMultiTouch)) {
                     val dx = event.x - lastX
                     val dy = event.y - lastY
                     renderer.camera.rotate(dx * ROTATE_DEGREES_PER_PX, dy * ROTATE_DEGREES_PER_PX)
@@ -155,15 +167,28 @@ internal class SceneSurface(context: Context, private val renderer: SceneRendere
                 requestRender()
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                if(dragging) {
-                    if(event.actionMasked == MotionEvent.ACTION_UP) {
-                        val point = renderer.camera.bedPoint(event.x,event.y,width,height)
+                if (dragging && didDragMove) {
+                    if (event.actionMasked == MotionEvent.ACTION_UP) {
+                        val point = renderer.camera.bedPoint(event.x, event.y, width, height)
                         val from = anchor
-                        if(point != null && from != null) onModelDrag?.invoke(point[0]-from[0],point[1]-from[1])
+                        if (point != null && from != null) onModelDrag?.invoke(point[0] - from[0], point[1] - from[1])
                     }
                     onModelDragEnd?.invoke()
+                } else if (event.actionMasked == MotionEvent.ACTION_UP && !movedBeyondSlop && !wasMultiTouch && onModelDrag != null) {
+                    val plate = renderer as? PlateRenderer
+                    if (plate != null) {
+                        val hit = plate.hitModel(event.x, event.y, width, height)
+                        plate.modelSelected = if (hit) !plate.modelSelected else false
+                        if (plate.modelSelected) performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        requestRender()
+                    }
                 }
-                pointers = 0; dragging = false; anchor = null
+                pointers = 0
+                dragging = false
+                didDragMove = false
+                movedBeyondSlop = false
+                wasMultiTouch = false
+                anchor = null
                 parent?.requestDisallowInterceptTouchEvent(false)
             }
         }
