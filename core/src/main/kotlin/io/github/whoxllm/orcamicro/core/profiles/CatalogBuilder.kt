@@ -38,7 +38,7 @@ class CatalogBuilder(
     private fun vendorIndexes(): List<Pair<String, VendorIndex>> {
         val files = profilesDir.listFiles { f -> f.isFile && f.name.endsWith(".json") }.orEmpty()
         return files.sortedBy { it.name.lowercase() }.map { file ->
-            file.nameWithoutExtension to PresetResolver.json.decodeFromString(VendorIndex.serializer(), file.readText())
+            file.nameWithoutExtension to PresetResolver.json.decodeFromString(VendorIndex.serializer(), file.readText().withoutBom())
         }
     }
 

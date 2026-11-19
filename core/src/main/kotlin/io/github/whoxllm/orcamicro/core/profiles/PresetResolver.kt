@@ -14,7 +14,7 @@ fun interface ProfileSource {
 }
 
 class DirectoryProfileSource(private val root: File) : ProfileSource {
-    override fun read(path: String): String? = File(root, path).takeIf { it.isFile }?.readText()
+    override fun read(path: String): String? = File(root, path).takeIf { it.isFile }?.readText()?.withoutBom()
 }
 
 class PresetNotFoundException(message: String) : Exception(message)
@@ -103,3 +103,6 @@ fun JsonObject.strings(key: String): List<String> = when (val value = this[key])
 
 /** The first entry of a per-extruder value, or a plain scalar. */
 fun JsonObject.first(key: String): String? = strings(key).firstOrNull()
+
+/** Some upstream profiles (e.g. BenFab in OrcaSlicer 2.5.1) start with a UTF-8 byte-order mark, which JSON parsers reject. */
+fun String.withoutBom(): String = removePrefix("\uFEFF")
