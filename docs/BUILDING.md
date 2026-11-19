@@ -1,23 +1,23 @@
 # Сборка и проверка
 
-[← README](../README.md)
+[← README](../README.ru.md) · [English](../README.md)
 
 Команды ниже выполняются из корня репозитория в Linux или WSL. Нужны JDK 17, Android SDK 35, build-tools 35, Python 3, Git, curl и unzip. Путь к SDK задаётся в игнорируемом `local.properties` либо через `ANDROID_HOME`.
 
 ```sh
-git clone https://github.com/redfaced97/OrcaSlicer-Android.git
-cd OrcaSlicer-Android
+git clone https://github.com/whoxllm/OrcaMicro.git
+cd OrcaMicro
 ```
 
 ## Быстрая debug-сборка
 
 ```sh
 ORCAMICRO_ORCA_DIR=/path/to/orca bash native/scripts/fetch-orca.sh --profiles-only
-# Быстрый вариант: проверяемый опубликованный ARM64-артефакт upstream.
+# Быстрый вариант: опубликованный ARM64-движок OrcaMicro, проверяется по SHA-256.
 bash scripts/fetch-prebuilt-engine.sh
 sh ./gradlew :core:test :app:assembleDebug :app:assembleDebugAndroidTest \
   :app:lintDebug -PorcaResourcesDir=/path/to/orca/resources \
-  -PsourceUrl=https://github.com/redfaced97/OrcaSlicer-Android --max-workers=2
+  -PsourceUrl=https://github.com/whoxllm/OrcaMicro --max-workers=2
 ```
 
 ## Сборка движка из исходников
@@ -35,7 +35,7 @@ sh ./gradlew :app:assembleDebug \
   -PorcaResourcesDir="$ORCAMICRO_ORCA_DIR/resources" --max-workers=2
 ```
 
-Исходники native bridge сохранены без изменений. Движок, использованный в локальном APK, собран upstream на коммите `d92230eafe9a876baafa6ce623451d57ffa8fb5f`; дерево `native/` совпадает с исходной базой этого форка. SHA-256 ZIP: `58988793c158e9e117557958ead7e9571c9cad70ca2be1ceec8afc066cd5e7d3` (проверен по GitHub API).
+Исходники native bridge сохранены без изменений. Опубликованный движок собран в CI OrcaMicro на коммите `d92230eafe9a876baafa6ce623451d57ffa8fb5f`; `scripts/prebuilt-native.sha256` проверяет, что дерево `native/` с тех пор не менялось. SHA-256 ZIP: `58988793c158e9e117557958ead7e9571c9cad70ca2be1ceec8afc066cd5e7d3` (проверен по GitHub API).
 
 ## Каталог настроек и тесты
 
@@ -57,14 +57,14 @@ sh ./gradlew :core:test -PcoreOnly -PorcaResourcesDir=/path/to/orca/resources
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb shell am instrument -w \
-  io.github.redfaced97.orcapocket.test/androidx.test.runner.AndroidJUnitRunner
+  io.github.whoxllm.orcamicro.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
-Пакет приложения — `io.github.redfaced97.orcapocket`; исходные Kotlin/JNI namespace сохранены для совместимости с движком. Опциональный `-PsourceUrl=https://github.com/OWNER/REPO` включает ссылку на исходники в экране «О программе».
+Пакет приложения — `io.github.whoxllm.orcamicro`, как и Kotlin/JNI namespace. Опциональный `-PsourceUrl=https://github.com/OWNER/REPO` включает ссылку на исходники в экране «О программе».
 
 ## Где искать APK
 
-После сборки файл находится в `app/build/outputs/apk/debug/app-debug.apk`. В GitHub Actions артефакт называется `OrcaSlicer-Android-arm64-debug`; ZIP содержит `app-debug.apk`.
+После сборки файл находится в `app/build/outputs/apk/debug/app-debug.apk`. В GitHub Actions подписанный release-APK лежит в артефакте `OrcaMicro-apk`.
 
 ## Подпись и обновления
 
@@ -75,16 +75,14 @@ adb shell am instrument -w \
 `SceneGestureTest` отправляет события в настоящие Android GestureDetector и ScaleGestureDetector: длинный перенос после двойного тапа вверх/вниз не должен менять матрицу камеры; щипок двумя пальцами должен менять масштаб, обычный свайп — вращать камеру.
 
 ## Публикация релиза
+Релизы публикует workflow `build.yml` после тестов и проверки нарезки на эмуляторе. Ключ подписи хранится только в секретах репозитория (`ORCAMICRO_KEYSTORE_BASE64`, `ORCAMICRO_KEYSTORE_PASSWORD`); без них APK подписывается временным ключом и не публикуется.
 
-В Releases отправляется уже собранный и проверенный APK с постоянной локальной подписью. Повторная сборка в Actions не меняет ключ установки. Бинарные файлы хранятся в отдельной ветке `release-artifacts`, исходники — в `main` и тегах релизов.
-
-После проверки APK, сохранения исходников в коммите и push основной ветки:
+- Каждый push в `main` обновляет пре-релиз `latest` с файлом `OrcaMicro.apk`.
+- Тег `vВЕРСИЯ` публикует стабильный релиз с файлом `OrcaMicro-arm64-vВЕРСИЯ.apk`. Только такие релизы предлагает встроенный обновлятор.
 
 ```sh
-python3 scripts/publish-release.py 0.6.5 \
-  dist/OrcaSlicer-arm64-v0.6.5.apk SOURCE_COMMIT release-notes.md
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
-Скрипт отправляет APK, его SHA-256, описание и точный коммит исходников в `release-artifacts` через SSH. Workflow `releases.yml` проверяет манифест и создаёт релиз с APK, `SHA256SUMS` и тегом на коммит исходников. GitHub добавляет архивы Source code автоматически. Уже опубликованные файлы не перезаписываются. Локальный GitHub API-токен не нужен: публикацию выполняет `GITHUB_TOKEN` Actions с `contents: write`. Ключ подписи не передаётся в GitHub.
-
-Параметры версии при сборке: `-PappVersionName=0.6.5 -PappVersionCode=11`. Для будущего обновления `versionCode` должен увеличиваться; публикуемый тег, версия внутри APK и имя `OrcaSlicer-arm64-vVERSION.apk` должны совпадать. Обновлятор использует SHA-256 `digest` GitHub Release asset и проверяет подпись относительно установленного приложения.
+Версия внутри APK берётся из тега, `versionCode` — из номера запуска Actions, поэтому он всегда растёт. Обновлятор использует SHA-256 `digest` GitHub Release asset и проверяет подпись относительно установленного приложения.

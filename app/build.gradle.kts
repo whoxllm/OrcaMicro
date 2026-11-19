@@ -25,11 +25,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "io.github.redfaced97.orcapocket"
+        applicationId = "io.github.whoxllm.orcamicro"
         minSdk = 34
         targetSdk = 35
-        versionCode = providers.gradleProperty("appVersionCode").orElse("15").get().toInt()
-        versionName = providers.gradleProperty("appVersionName").orElse("0.6.9").get()
+        versionCode = providers.gradleProperty("appVersionCode").orElse("16").get().toInt()
+        versionName = providers.gradleProperty("appVersionName").orElse("1.1.0").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             // The engine is built for 64-bit ARM phones only.

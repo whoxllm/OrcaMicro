@@ -75,7 +75,7 @@ object ModelDownload {
                 require(uri.scheme=="https" && !uri.host.isNullOrBlank() && uri.userInfo==null) { tr("Для модели нужна прямая HTTPS-ссылка") }
                 val http=open(uri).apply {
                     connectTimeout=15_000;readTimeout=30_000;instanceFollowRedirects=false
-                    setRequestProperty("User-Agent","OrcaSlicer-Android")
+                    setRequestProperty("User-Agent","OrcaMicro")
                     headers(current).forEach { (key,value) -> require(!value.contains('\r')&&!value.contains('\n'));setRequestProperty(key,value) }
                 }
                 try {

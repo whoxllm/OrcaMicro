@@ -1,176 +1,151 @@
-[Русский](README.md) · [English](README.en.md)
+[English](README.md) · [Русский](README.ru.md)
 
 <p align="center">
-  <img src="third_party/OrcaSlicer.svg" width="72" alt="OrcaSlicer">
+  <img src="third_party/OrcaSlicer.svg" width="72" alt="OrcaSlicer logo">
 </p>
 
-# OrcaSlicer для Android
+# OrcaMicro
 
-Слайсер для телефона: подготовка STL, нарезка прямо на устройстве, просмотр слоёв и загрузка G-code на Klipper. Интерфейс адаптирован для сенсорного экрана и использует оформление настольной OrcaSlicer.
+A 3D-print slicer for Android that runs [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer)'s
+slicing engine on the phone itself. Prepare a model, slice it on the phone, check the layers, then
+save the G-code or send it to a Klipper or OctoPrint printer.
 
-**Неофициальная Android-адаптация на основе OrcaMicro и OrcaSlicer 2.4.2.** Проект находится в стадии бета-тестирования.
+**Slicing works fully offline.** The network is only used for the model catalogs, app updates and
+printer connections, and only when you use them.
 
-**Android 14+ · ARM64 · OpenGL ES 3**
+**Android 14+ · 64-bit ARM · OpenGL ES 3 · OrcaSlicer 2.4.2 engine · Beta**
 
-[Скачать APK из Releases](https://github.com/redfaced97/OrcaSlicer-Android/releases/latest) · [Инструкция](docs/USAGE.md) · [Импорт профилей](docs/PROFILES.md) · [Сборка из исходников](docs/BUILDING.md)
-
-## Новое в 0.6.9
+[Download APK](https://github.com/whoxllm/OrcaMicro/releases/latest) · [User guide (RU)](docs/USAGE.md) · [Import profiles (RU)](docs/PROFILES.md) · [Build instructions (RU)](docs/BUILDING.md)
 
 <p align="center">
-  <img src="docs/images/home.png" width="240" alt="Стартовый экран и последние проекты">
-  <img src="docs/images/gcode-thumbnail.png" width="200" alt="PNG-миниатюра из G-code">
+  <img src="docs/images/home.png" width="240" alt="Home screen and recent projects">
+  <img src="docs/images/prepare.png" width="240" alt="Build plate, printer, filament and process profiles">
+  <img src="docs/images/preview.png" width="240" alt="Layer preview and toolpath filters">
 </p>
-
-- **Стартовый экран:** новый проект, открытие STL / 3MF, продолжение текущей работы и последние проекты с миниатюрами, названием принтера и филамента.
-- **Автосохранение проектов:** модель, поворот, масштаб, положение на столе и выбранные пресеты с изменениями сохраняются на устройстве. Нажмите карточку, чтобы продолжить. Проекты не удаляются при очистке или истечении срока кэша моделей; удалить проект можно с подтверждением на главной. Логотип Orca в верхней панели возвращает на главную.
-- **Превью внутри G-code:** после нарезки создаются прозрачные PNG **32×32 и 400×400** с освещением, правильным перекрытием граней и цветом филамента. Поворот модели учитывается; сетка стола и интерфейс в изображение не попадают. Обе миниатюры встраиваются в файл в формате OrcaSlicer и сохраняются при экспорте и отправке на принтер.
-
-Пример: откройте `корпус.3mf`, выберите PLA и высоту слоя 0,20 мм, поверните модель и вернитесь на главную. Карточка проекта откроет эту модель с теми же параметрами даже после перезапуска. Нажмите **Нарезать → Загрузить**: переданный G-code уже содержит обе миниатюры. Moonraker / Mainsail / Fluidd читают стандартные PNG-блоки; отображение в OctoPrint зависит от установленного плагина миниатюр.
-
-## Новое в 0.6.8
-
-- Обновлятор проверяет список опубликованных релизов и выбирает свежий совместимый APK по `published_at`, а не только отметку GitHub Latest.
-- Номера с любым количеством частей — например, `0.6.7.1.2.3.4.5` — поддерживаются. Без дат части сравниваются слева направо; сумма чисел не используется.
-- Дата установленного релиза сохраняется для повторной загрузки и перезапуска. Черновики, предварительные релизы и неподходящие APK исключаются.
-- Номер **0.6.8** также распознаётся старым обновлятором 0.6.6. Если 0.6.7.1 не отображалась, откройте **О программе → ⚙ → Обновления приложения → Проверить**.
-
-## Новое в 0.6.7.1
-
-- Убрана акцентная точка в конце полосы нарезки.
-- Разделы настроек приложения раскрываются и закрываются вертикально, без бокового движения.
-- В **О программе → ⚙ → Языки** отдельно выбираются язык интерфейса и язык параметров. Например: интерфейс English, параметры Русский — или наоборот. Язык параметров относится к названиям, описаниям, разделам и значениям, включая Quick Print.
-- Обновлятор поддерживает версии из трёх и четырёх чисел. При переходе с 0.6.6 и более ранних версий установите этот APK вручную поверх приложения: старый обновлятор не распознаёт номер `0.6.7.1`.
-
-## Новое в 0.6.6
-
-- Единое окно загрузки: процент при известном размере, отдельные этапы получения ссылки, скачивания и проверки модели. Отправка G-code отличает передачу от ожидания подтверждения принтера; после ошибки можно повторить загрузку.
-- Дискета сохраняет текущий пользовательский профиль, а штатный — как свою копию. Звёздочка `*` означает изменения, ещё не записанные в именованный профиль. Рабочие правки автоматически сохраняются между запусками; возврат к исходным значениям убирает звёздочку.
-- Устранена гонка при быстром выборе профилей: применяется последний выбор, правки во время загрузки профиля сохраняются.
-- Настройки приложения собраны в **О программе → ⚙**: язык, графика / Dev menu, API каталогов, срок кэша, телеметрия и обновления. Параметры нарезки остаются в профилях печати.
-
-## Новое в 0.6.5
-
-- Русский / English, автоматический выбор по локали Android и переключатель языка.
-- Время начала, активная длительность, время с паузами и примерное завершение печати.
-- Температурный график за 1 / 5 / 10 минут с делениями времени; обновление раз в 1 / 5 / 10 / 30 секунд.
-- OctoPrint наряду с Klipper / Moonraker: подключения, телеметрия, управление, загрузка и печать.
-- Анимированная статистика одного или всех принтеров с отдельными ошибками недоступных серверов.
-- Чтение доступных параметров с сервера с подтверждением перед сохранением в новый локальный профиль.
-- «Загрузить | ∧»: отправка или сохранение G-code. Панель с превью и отдельными кнопками «Загрузить» и «Напечатать».
-- Дополнена поддержка 3MF: стандартная корневая связь, компоненты и выбор импорта параметров проекта OrcaSlicer / Bambu Studio.
-- В «Моделях» убрана вторая шестерёнка параметров печати; остались настройки кэша и импорт файла.
-
-[Инструкция, источники данных и ограничения](docs/PRINTERS.md).
-
-## Как выглядит
-
 <p align="center">
-  <img src="docs/images/prepare.png" width="240" alt="Подготовка: принтер, пластик, процесс и модель на столе">
-  <img src="docs/images/preview.png" width="240" alt="Предпросмотр: слои, типы линий, сохранение и загрузка G-code">
+  <img src="docs/images/library.png" width="240" alt="Native model catalog with attribution and licenses">
+  <img src="docs/images/control.png" width="240" alt="Klipper controls and temperature charts on a test connection">
+  <img src="docs/images/print-setup.png" width="240" alt="Quick Print and imported filament presets">
 </p>
 
-<p align="center">
-  <img src="docs/images/library.png" width="240" alt="Каталоги, поиск, теги и сохранённые карточки моделей">
-  <img src="docs/images/control.png" width="240" alt="Пульт Klipper и температурные графики на тестовом подключении">
-</p>
+## What it does
 
-<p align="center">
-  <img src="docs/images/print-setup.png" width="240" alt="Quick Print: фото модели, свой филамент и подготовка печати">
-  <img src="docs/images/quick-print-bed.png" width="240" alt="Интерактивный стол в Quick Print">
-</p>
+- **Slicing on the phone:** OrcaSlicer 2.4.2's own engine. Walls, infill, shells, skirt and brim,
+  retraction, spiral vase, and normal and tree supports. About 950 bundled printer profiles, plus
+  your own.
+- **Projects:** a home screen with recent projects. Geometry, placement and preset edits are saved
+  on the device, so a project reopens where you left it.
+- **Models:** open STL, 3MF or a model ZIP. Move, rotate, scale, center and check the model fits
+  the build volume.
+- **Settings:** 638 OrcaSlicer parameters with English and Russian labels and help, plus search,
+  categories, favorites and a "changed only" filter.
+- **OrcaSlicer profiles:** import printer, filament and process JSON files or whole profile sets
+  from desktop OrcaSlicer, and save your own presets.
+- **Layer preview:** step through layers, filter by line type and travel moves. Finished G-code
+  includes 32×32 and 400×400 thumbnails that Mainsail, Fluidd and OctoPrint can show.
+- **Printers:** Klipper/Moonraker and OctoPrint. Several saved printers, temperatures and charts,
+  XYZ jog, homing, fans, pause/resume/cancel, and Mainsail/Fluidd inside the app. Uploading and
+  starting a print are separate steps.
+- **Protected STOP:** the emergency stop only fires after you type `Stop Klipper!` exactly.
+- **Model catalogs:** search Printables, MakerWorld, Thingiverse and Cults3D, with author, source,
+  price and license on every card. Downloaded files are cached for 7 days by default.
+- **Quick Print:** catalog card → printer, filament and process → plate → slice → send. Layout
+  inspired by Bambu Handy.
+- **Updates:** the app can check this repository's releases, download the APK in the background,
+  verify its SHA-256 and signature, and hand it to Android's installer.
+- **English and Russian**, light and dark themes.
 
-## Возможности
+Bambu Lab printers are not supported yet. Their G-code relies on parts of the engine this build
+does not drive.
 
-- **Нативный каталог моделей:** JSON API Printables, MakerWorld, Thingiverse и Cults3D; фото слева, название, автор, источник, цена и лицензия справа. Поиск по запросу, тегам и ссылке. Для Thingiverse/Cults нужен свой API-ключ. [Как пользоваться](docs/MODELS.md).
-- **Quick Print:** карточка → свой принтер, пластик и процесс → редактируемый 3D-стол → нарезка → отправка G-code. Компоновка по образцу Bambu Handy.
-- **Кэш:** 7 дней после последнего открытия, настраиваемый срок и ручная очистка; карточки сохраняются после удаления файлов.
-- **Подготовка модели:** перемещение на столе, поворот, масштаб, центрирование и проверка габаритов.
-- **Профили OrcaSlicer:** свои принтеры, процессы и пластики отдельно от штатных; импорт JSON и наборов профилей; сохранение собственных пресетов.
-- **Параметры печати:** 638 настроек с русскими и английскими подписями и подсказками, поиск, разделы, избранное и фильтр изменённых значений.
-- **Цвет пластика:** выбор цвета из палитры или по HEX, отображение цвета импортированного профиля.
-- **Нарезка на телефоне:** движок OrcaSlicer через JNI, обычные и древовидные поддержки, экспорт и отправка G-code через «Поделиться».
-- **Просмотр слоёв:** выбор слоя, фильтры типов линий и холостых перемещений. Графика **Dev menu** (SSAO, тени, поверхности стола, свободная камера и разрешение сцены) находится в **О программе → ⚙ → Графика**.
-- **Защита STOP:** для экстренной остановки требуется точный ввод `Stop Klipper!`. Закрытие диалога или смена принтера не отправляют команду.
-- **Обновления:** уведомление о новой версии, список изменений, фоновая загрузка APK, проверка SHA-256 и подписи, переход в системный установщик Android. [Как обновляться](docs/UPDATES.md).
-- **Klipper / Moonraker:** несколько подключений, температуры всех обнаруженных нагревателей, графики за 10 минут, перемещение XYZ, Home, обдув, пауза/продолжение/отмена и аварийный STOP. Загрузка G-code и запуск печати — отдельные действия. Mainsail/Fluidd также доступен внутри приложения.
-- **Оформление:** светлая и тёмная темы, шрифт Inter с кириллицей, поддержка системного масштаба текста.
+## Get the APK
 
-Нарезка работает без интернета. Сеть нужна для каталогов моделей и подключения к принтеру.
+1. Open the [latest release](https://github.com/whoxllm/OrcaMicro/releases/latest) on your phone.
+2. Download `OrcaMicro-arm64-vVERSION.apk` from **Assets**.
+3. Open it and allow installs from that app when Android asks.
 
-## Установка
+After that, **About → ⚙ → App updates** finds new releases. Release APKs are always signed with the
+same key, so updates keep your data. [Update details (RU)](docs/UPDATES.md).
 
-1. Откройте [Releases](https://github.com/redfaced97/OrcaSlicer-Android/releases/latest).
-2. В **Assets** скачайте `OrcaSlicer-arm64-vVERSION.apk` и установите на телефон Android 14+ с ARM64.
-3. Для проверки файла рядом опубликован `SHA256SUMS`. Обновление устанавливается поверх предыдущего APK из Releases и локальных сборок этого проекта.
+Every push to `main` also refreshes a [**latest build**](https://github.com/whoxllm/OrcaMicro/releases/tag/latest)
+pre-release with `OrcaMicro.apk`. It's the newest APK that passed the on-emulator slicing test.
 
-В Releases публикуется проверенный APK с постоянной подписью. Промежуточные сборки доступны в [GitHub Actions](https://github.com/redfaced97/OrcaSlicer-Android/actions/workflows/build.yml); они могут иметь другую подпись. Перед сменой источника APK экспортируйте свои профили. [Подпись и обновления](docs/BUILDING.md#подпись-и-обновления).
+**Coming from redfaced97's OrcaSlicer for Android?** OrcaMicro installs as a separate app next to
+it. Export your profiles there and import them here.
 
-## Обновление из приложения
+## First print
 
-Начиная с **0.6.2** откройте **«О программе» → «Обновления приложения»**. Здесь можно проверить релиз, прочитать изменения и нажать **«Скачать апдейт»**. После проверки файла приложение откроет установщик Android. При первом обновлении разрешите установку из OrcaSlicer, затем подтвердите установку. Профили сохраняются.
+1. Pick a bundled printer, or import your own OrcaSlicer JSON. Imported presets appear under
+   **My presets**.
+2. **Prepare → Add** opens an STL, 3MF or ZIP. Check placement, size and settings.
+3. **Slice**, then check the layers under **Preview**.
+4. Or use **Quick Print** from a catalog card, or **Prepare print** from the plate: choose printer
+   and profiles, adjust layer height, infill and walls, **Slice for printing**, then
+   **Send to printer**.
+5. Make sure the right filament is loaded and the plate is clear. **Upload** stores the file on
+   the printer; **Print** uploads it and starts printing after you confirm.
 
-Автопроверка выполняется при запуске не чаще раза в 6 часов и примерно раз в сутки в фоне. Разрешите уведомления Android, чтобы получать сообщения о новых версиях при закрытом приложении. Автопроверку можно отключить. Переход с 0.6.0 на 0.6.2 выполняется установкой APK из Releases; следующие обновления доступны внутри приложения.
+Changing the model, settings or printer clears the previous slice. STOP sends an emergency
+shutdown, and Klipper then needs `FIRMWARE_RESTART`. For normal control use Pause or Cancel.
 
-## Первый запуск
+## Touch gestures
 
-1. Выберите принтер из штатного каталога или импортируйте свой JSON из OrcaSlicer.
-2. Выберите профиль процесса и пластика. Свои пресеты находятся в разделе **«Мои профили»**.
-3. На вкладке **«Подготовка»** нажмите **«Добавить»** и откройте STL, 3MF или ZIP с моделями. Проверьте положение модели и параметры.
-4. Нажмите **«Нарезать»**, затем изучите слои во вкладке **«Просмотр»**.
-5. Через **«К печати»** выберите принтер, свой пластик и процесс, при необходимости измените высоту слоя, заполнение и стенки. В Quick Print нажмите **«Нарезать для печати»**, затем **«Отправить на печать»**, подтвердите наличие филамента и загрузите G-code. Кнопка **«Загрузить»** сохраняет файл без запуска, **«Напечатать»** после подтверждения загружает и запускает печать.
-
-Модели с сайтов доступны на вкладке **«Модели»**. Вставьте ссылку прямо в поиск или выберите площадку. Кнопки **«На стол»** и **Quick Print** находятся в нативной карточке; файл скачивается через API при выборе.
-
-Цветовой кружок в строке пластика открывает палитру. Изменённые параметры можно сохранить отдельным профилем через **«Сохранить как»** в библиотеке.
-
-### Жесты в 3D-окне
-
-| Жест | Действие |
+| Gesture | Action |
 | --- | --- |
-| Свайп одним пальцем | Вращение камеры |
-| Движение двумя пальцами | Перемещение камеры |
-| Щипок двумя пальцами | Приближение и отдаление |
-| Двойной тап по модели, удержать второй тап и потянуть | Перемещение модели по столу без изменения камеры |
+| One-finger drag | Orbit the camera |
+| Two-finger drag | Pan |
+| Pinch | Zoom |
+| Double-tap the model, hold the second touch and drag | Move the model on the plate |
 
-Для точных координат, поворота и масштаба используйте **«Положение»**; на узком экране кнопка называется **«Правка»**.
+**Placement** (**Edit** on narrow screens) sets exact position, rotation and scale.
 
-## Перенос настроек с ПК
+## Import desktop presets
 
-Можно импортировать отдельные JSON-профили или подготовить один набор скриптом:
+Import single JSON files, or bundle your desktop presets on a computer:
 
 ```sh
-python3 scripts/export-desktop-presets.py \
-  --resources /path/to/OrcaSlicer/resources
+python3 scripts/export-desktop-presets.py --resources /path/to/OrcaSlicer/resources
 ```
 
-Скопируйте полученный `dist/private-presets/user-presets.json` на телефон. Нажмите на строку **«Принтер»**, **«Процесс»** или **«Пластик»** → **«Импортировать»** и выберите файл.
+Copy `dist/private-presets/user-presets.json` to the phone, open a profile selector and press
+**Import**. The script resolves inheritance and leaves out passwords and API keys.
+[Profile guide (RU)](docs/PROFILES.md).
 
-Скрипт читает локально сохранённые пользовательские профили, включая папки аккаунтов, разрешает наследование и исключает пароли и API-ключи. [Подробная инструкция и пример JSON](docs/PROFILES.md).
+## Catalogs and limits
 
-## Текущие ограничения
+Printables and MakerWorld search work without a key. Thingiverse needs your App Token, and Cults
+needs your nickname and API key; set them under **Models → API**. Keys are encrypted with Android
+Keystore and are never included in exported profiles or backups. The Cults API has no file
+downloads, so attach a file you already have. [Catalog guide (RU)](docs/MODELS.md).
 
-Приложение работает с **одной моделью, одним столом и одним материалом**. Объекты 3MF объединяются в одну модель. Известные параметры проекта OrcaSlicer / Bambu Studio можно применить отдельно; стартовый и конечный G-code остаются из выбранного профиля, используется первый материал. AMS, покраска и распределение по столам не переносятся. STEP/OBJ, многоматериальная печать, покраска поддержек и швов, модификаторы и кисть переменной высоты слоя пока недоступны.
+OrcaMicro handles **one model, one plate and one material** for now. 3MF objects are combined into
+one model. Not supported yet: multi-material and AMS, painting (color, supports, seams), modifiers,
+variable layer height, multiple plates, and STEP/OBJ import. G-code is not guaranteed to match
+desktop OrcaSlicer for every model. [Compatibility (RU)](docs/COMPATIBILITY.md).
 
-Каталог использует отдельные API площадок. Поиск Printables и MakerWorld работает без ключа; Thingiverse требует App Token, Cults — ник и API-ключ. Для защищённых файлов могут понадобиться личные session cookie Printables или access token Bambu. Cults API предоставляет метаданные, но не файлы: к карточке можно прикрепить свой STL/ZIP/3MF. Если API не сообщает цену, карточка показывает «Цена не указана API»; тип лицензии отображается отдельно. [Доступ к площадкам](docs/MODELS.md#доступ-к-api).
+## How it is built
 
-Доступность настройки в редакторе не добавляет отсутствующий рабочий процесс. Совпадение G-code с настольной OrcaSlicer для всех моделей не гарантируется. [Подробности совместимости](docs/COMPATIBILITY.md).
+| Part | What it is |
+|---|---|
+| `app/` | The Android app: Kotlin, Jetpack Compose, OpenGL ES 3 views |
+| `core/` | Pure Kotlin: models, OrcaSlicer profiles and settings, G-code parsing, printer and catalog clients, updater. Unit-tested on any JVM |
+| `native/` | Builds OrcaSlicer's `libslic3r` for Android with a small JNI bridge (`liborcamicro_engine.so`) |
 
-## Разработка
+The slicing engine runs in its own Android process, so a crash in native code can't take the app
+down. The original design is in [docs/design.md](docs/design.md). Builds and tests are covered in
+[docs/BUILDING.md](docs/BUILDING.md) (Russian).
 
-Нужны JDK 17, Android SDK 35 и ARM64-движок OrcaSlicer. В репозитории есть скрипты получения и сборки движка, JVM-тесты и Android-тесты реальной нарезки и жестов.
+## Credits
 
-[Сборка, подпись и запуск тестов](docs/BUILDING.md) · [Инструкция по работе с приложением](docs/USAGE.md)
-
-## Команда
-
-| Роль | Участник |
+| | |
 | --- | --- |
-| Продюсер | redfaced97 |
-| Программист | Codex GPT-6.1-Sol |
-| Бета-тестер | redfaced97 и Ender 3 v3 SE (Klipper) |
+| OrcaMicro: Android app, engine build and JNI bridge | whoxllm and contributors |
+| Touch interface, projects, printer control, model catalogs, Quick Print, updater, Russian translation | [redfaced97](https://github.com/redfaced97), originally released as [OrcaSlicer for Android](https://github.com/redfaced97/OrcaSlicer-Android) |
+| Beta testing | redfaced97 and an Ender 3 V3 SE (Klipper) |
 
-## Источники и лицензия
+Engine, profiles, base translations and icons: [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer),
+by SoftFever and contributors, based on Bambu Studio, PrusaSlicer and Slic3r. OrcaMicro is an
+unofficial project and is not affiliated with the OrcaSlicer team.
 
-Android-основа и JNI-мост — [OrcaMicro](https://github.com/whoxllm/OrcaMicro), whoxllm и участники проекта. Движок, профили, основа переводов и иконки — [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer), SoftFever и участники, на основе Bambu Studio, PrusaSlicer и Slic3r. Недостающие русские подписи и пояснения дополнены в этой адаптации.
-
-Лицензия проекта — **[AGPL-3.0](LICENSE)**. Шрифт Inter распространяется по [SIL OFL 1.1](third_party/Inter-OFL.txt). Источники оформления и уведомления о сторонних компонентах перечислены в [NOTICE](third_party/NOTICE.txt).
+License: **[AGPL-3.0](LICENSE)**. Inter is under [SIL OFL 1.1](third_party/Inter-OFL.txt). Third-party
+notices are in [NOTICE](third_party/NOTICE.txt).

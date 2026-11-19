@@ -37,7 +37,7 @@ fun HomeScreen(state:UiState, viewModel:MainViewModel) {
     Scaffold(
         topBar={ TopAppBar(title={ Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
             Image(painterResource(R.drawable.orca_logo),null,Modifier.size(30.dp))
-            Text("OrcaSlicer",style=MaterialTheme.typography.titleLarge)
+            Text("OrcaMicro",style=MaterialTheme.typography.titleLarge)
         } },actions={ IconButton(onClick={viewModel.navigate(Screen.ABOUT)}) { OrcaIcon(OrcaAction.Settings,tr("О программе и настройки")) } }) },
         snackbarHost={SnackbarHost(snackbar)},
     ) { padding ->

@@ -1,6 +1,6 @@
 # Нативный каталог, Quick Print и кэш
 
-[← README](../README.md)
+[← README](../README.ru.md) · [English](../README.md)
 
 ## Поиск по запросу и тегам
 
@@ -52,7 +52,7 @@ API площадок могут менять схему, требовать ав
 ```text
 https://www.printables.com/model/3161-3d-benchy
 https://makerworld.com/en/models/40146-benchy-bambu-pla-basic
-https://raw.githubusercontent.com/redfaced97/OrcaSlicer-Android/main/samples/cube-20mm.stl
+https://raw.githubusercontent.com/whoxllm/OrcaMicro/main/samples/cube-20mm.stl
 orcaslicer://open?file=https%3A%2F%2Fexample.com%2Fcube.stl
 orcaslicer://open?url=https%3A%2F%2Fwww.printables.com%2Fmodel%2F3161
 ```

@@ -40,9 +40,11 @@ object ReleaseVersion {
 }
 
 object AppReleases {
-    const val REPOSITORY="redfaced97/OrcaSlicer-Android"
+    const val REPOSITORY="whoxllm/OrcaMicro"
     const val API="https://api.github.com/repos/${REPOSITORY}/releases"
     const val MAX_APK_BYTES=96L*1024*1024
+    /** The release asset CI publishes for a version, e.g. OrcaMicro-arm64-v1.1.0.apk. */
+    fun apkName(version:String)="OrcaMicro-arm64-v${version}.apk"
     private const val PAGE_SIZE=100
     private const val MAX_PAGES=10
 
@@ -86,7 +88,7 @@ object AppReleases {
         val tag=obj["tag_name"]?.jsonPrimitive?.content ?: error(tr("В релизе нет версии"))
         if(ReleaseVersion.parts(tag)==null)return null
         val version=tag.removePrefix("v")
-        val name="OrcaSlicer-arm64-v${version}.apk"
+        val name=apkName(version)
         val asset=(obj["assets"] as? JsonArray)?.mapNotNull { it as? JsonObject }?.singleOrNull { it["name"]?.jsonPrimitive?.content==name } ?: return null
         val size=asset["size"]?.jsonPrimitive?.longOrNull ?: return null
         require(size in 1..MAX_APK_BYTES) { tr("Размер обновления не поддерживается") }
@@ -107,7 +109,7 @@ object AppReleases {
     private fun getJson(url:String):JsonElement {
         val http=(URI(url).toURL().openConnection() as HttpURLConnection).apply {
             connectTimeout=12_000;readTimeout=15_000;instanceFollowRedirects=false
-            setRequestProperty("Accept","application/vnd.github+json");setRequestProperty("User-Agent","OrcaSlicer-Android-Updater")
+            setRequestProperty("Accept","application/vnd.github+json");setRequestProperty("User-Agent","OrcaMicro-Updater")
         }
         try {
             if(http.responseCode==404)return buildJsonObject { put("draft",true) }
