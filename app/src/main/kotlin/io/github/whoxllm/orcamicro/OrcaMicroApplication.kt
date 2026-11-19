@@ -1,6 +1,11 @@
 package io.github.whoxllm.orcamicro
 
 import android.app.Application
+import android.content.res.Configuration
+import io.github.whoxllm.orcamicro.core.i18n.AppText
 
-/** Runs in both the app process and the :engine process, so it must stay free of heavy work. */
-class OrcaMicroApplication : Application()
+class OrcaMicroApplication:Application() {
+    override fun onCreate(){super.onCreate();syncLanguage(resources.configuration)}
+    override fun onConfigurationChanged(newConfig:Configuration){super.onConfigurationChanged(newConfig);syncLanguage(newConfig)}
+    private fun syncLanguage(config:Configuration){AppText.english=config.locales[0].language!="ru"}
+}

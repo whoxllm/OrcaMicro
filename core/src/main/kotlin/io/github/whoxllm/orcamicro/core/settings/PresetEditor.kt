@@ -17,6 +17,12 @@ data class PresetEdits(
     val machine: Map<String, String> = emptyMap(),
     val process: Map<String, String> = emptyMap(),
     val filament: Map<String, String> = emptyMap(),
+    val rawMachine: Map<String, JsonElement> = emptyMap(),
+    val rawProcess: Map<String, JsonElement> = emptyMap(),
+    val rawFilament: Map<String, JsonElement> = emptyMap(),
+    val importedMachine: JsonObject? = null,
+    val importedProcess: JsonObject? = null,
+    val importedFilament: JsonObject? = null,
 )
 
 /** The printable area of a printer, from Orca's `printable_area` ("0x0", "220x0", ...). */
@@ -73,7 +79,7 @@ object PresetEditor {
     }
 
     /** [preset] with [edits] applied. Pseudo keys are expanded into the Orca options they stand for. */
-    fun apply(preset: JsonObject, edits: Map<String, String>, bedType: BedType): JsonObject {
+    fun apply(preset: JsonObject, edits: Map<String, String>, bedType: BedType, raw: Map<String, JsonElement> = emptyMap()): JsonObject {
         val out = LinkedHashMap<String, JsonElement>(preset)
         for ((key, value) in edits) {
             when (key) {
@@ -96,7 +102,7 @@ object PresetEditor {
             )
             out["printable_area"] = JsonArray(shape.toOrca().map { JsonPrimitive(it) })
         }
-        return JsonObject(out)
+        return JsonObject(out + raw)
     }
 
     private fun setList(out: MutableMap<String, JsonElement>, key: String, value: String) {

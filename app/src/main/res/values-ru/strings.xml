@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OrcaMicro</string>
+    <string name="notification_channel_slicing">Нарезка</string>
+    <string name="notification_slicing">Нарезка модели</string>
+</resources>

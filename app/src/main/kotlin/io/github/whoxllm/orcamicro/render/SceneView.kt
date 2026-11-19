@@ -4,6 +4,10 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.view.MotionEvent
+import android.view.GestureDetector
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.key
 import android.view.ScaleGestureDetector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -22,6 +26,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 fun <R : SceneRenderer> SceneView(
     renderer: R,
     modifier: Modifier = Modifier,
+    onModelDrag: ((Float, Float) -> Unit)? = null,
+    onModelDragEnd: (() -> Unit)? = null,
     update: (R) -> Unit = {},
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -37,18 +43,46 @@ fun <R : SceneRenderer> SceneView(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+    BoxWithConstraints(modifier) {
+    // SurfaceView must acquire a fresh backing surface after the profile panel changes height.
+    key(maxWidth, maxHeight) {
     AndroidView(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         factory = { context -> SceneSurface(context, renderer).also { holder[0] = it } },
         update = { view ->
+            renderer.requestFrame = { view.requestRender() }
+            view.onModelDragEnd = onModelDragEnd
+            view.onModelDrag = onModelDrag
             update(renderer)
             view.requestRender()
         },
     )
+    }
+    }
 }
 
 @SuppressLint("ViewConstructor", "ClickableViewAccessibility")
-private class SceneSurface(context: Context, private val renderer: SceneRenderer) : GLSurfaceView(context) {
+internal class SceneSurface(context: Context, private val renderer: SceneRenderer) : GLSurfaceView(context) {
+    var onModelDrag: ((Float, Float) -> Unit)? = null
+    var onModelDragEnd: (() -> Unit)? = null
+    private var dragging = false
+    private var anchor: FloatArray? = null
+    private var lastDragAt = 0L
+    private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent) = true
+        override fun onDoubleTap(e: MotionEvent): Boolean = onModelDrag != null
+        override fun onDoubleTapEvent(e: MotionEvent): Boolean {
+            // onDoubleTap receives the FIRST tap's coordinates; anchor the drag to
+            // the actual second DOWN to avoid a jump when the taps differ slightly.
+            if(e.actionMasked == MotionEvent.ACTION_DOWN) {
+                dragging = onModelDrag != null && (renderer as? PlateRenderer)?.hitModel(e.x, e.y, width, height) == true
+                anchor = if (dragging) renderer.camera.bedPoint(e.x, e.y, width, height) else null
+                lastDragAt = 0L
+                if (dragging) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+            }
+            return dragging
+        }
+    })
     private var lastX = 0f
     private var lastY = 0f
     private var lastFocusX = 0f
@@ -61,10 +95,14 @@ private class SceneSurface(context: Context, private val renderer: SceneRenderer
             requestRender()
             return true
         }
-    })
+    }).apply {
+        // Android's single-finger double-tap-and-drag zoom conflicts with model
+        // placement. Keep zoom on the two-finger pinch gesture instead.
+        isQuickScaleEnabled = false
+    }
 
     init {
-        setEGLContextClientVersion(2)
+        setEGLContextClientVersion(3)
         setEGLConfigChooser(8, 8, 8, 8, 16, 0)
         preserveEGLContextOnPause = true
         setRenderer(renderer)
@@ -72,6 +110,7 @@ private class SceneSurface(context: Context, private val renderer: SceneRenderer
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        gestures.onTouchEvent(event)
         scaleDetector.onTouchEvent(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -81,6 +120,8 @@ private class SceneSurface(context: Context, private val renderer: SceneRenderer
                 lastY = event.y
             }
             MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> {
+                if(dragging) onModelDragEnd?.invoke()
+                dragging = false; anchor = null
                 pointers = if (event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) event.pointerCount else event.pointerCount - 1
                 focus(event, excluding = if (event.actionMasked == MotionEvent.ACTION_POINTER_UP) event.actionIndex else -1)
                 if (pointers == 1) {
@@ -90,7 +131,16 @@ private class SceneSurface(context: Context, private val renderer: SceneRenderer
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                if (pointers == 1 && !scaleDetector.isInProgress) {
+                if (dragging && pointers == 1) {
+                    if (event.eventTime - lastDragAt >= 32) {
+                        val point = renderer.camera.bedPoint(event.x, event.y, width, height)
+                        val from = anchor
+                        if (point != null && from != null) {
+                            onModelDrag?.invoke(point[0]-from[0], point[1]-from[1])
+                            anchor = point; lastDragAt = event.eventTime
+                        }
+                    }
+                } else if (pointers == 1 && !scaleDetector.isInProgress) {
                     val dx = event.x - lastX
                     val dy = event.y - lastY
                     renderer.camera.rotate(dx * ROTATE_DEGREES_PER_PX, dy * ROTATE_DEGREES_PER_PX)
@@ -104,7 +154,18 @@ private class SceneSurface(context: Context, private val renderer: SceneRenderer
                 }
                 requestRender()
             }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> pointers = 0
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if(dragging) {
+                    if(event.actionMasked == MotionEvent.ACTION_UP) {
+                        val point = renderer.camera.bedPoint(event.x,event.y,width,height)
+                        val from = anchor
+                        if(point != null && from != null) onModelDrag?.invoke(point[0]-from[0],point[1]-from[1])
+                    }
+                    onModelDragEnd?.invoke()
+                }
+                pointers = 0; dragging = false; anchor = null
+                parent?.requestDisallowInterceptTouchEvent(false)
+            }
         }
         return true
     }

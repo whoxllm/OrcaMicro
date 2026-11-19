@@ -75,6 +75,6 @@ object EngineResources {
             return
         }
         target.mkdirs()
-        for (child in children) copyAssets(context, "$path/$child", File(target, child))
+        for (child in children) copyAssets(context, "${path}/${child}", File(target, child))
     }
 }

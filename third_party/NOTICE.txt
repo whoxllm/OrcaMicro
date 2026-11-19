@@ -1,0 +1,26 @@
+OrcaSlicer icon
+
+Source: https://github.com/OrcaSlicer/OrcaSlicer/blob/8500fcdccaa10b5099ac20d252af3a7c560046f1/resources/images/OrcaSlicer.svg
+Retained original: third_party/OrcaSlicer.svg
+Android VectorDrawables: app/src/main/res/drawable/orca_logo.xml and ic_launcher_foreground.xml
+Copyright: OrcaSlicer contributors. Upstream project license: GNU AGPL-3.0.
+Official website: https://www.orcaslicer.com/
+Colors #009688, #2B2B2B and #36363B reference upstream src/slic3r/GUI/GUI_App.cpp.
+OrcaMicro by whoxllm and contributors; touch interface, printer control and model catalogs by redfaced97.
+This is an unofficial port, not an official OrcaSlicer release.
+
+Action icons: third_party/orca-icons/*.svg retained from resources/images/ at the
+same pinned OrcaSlicer commit. VectorDrawables orca_*.xml adapt their paths,
+strokes and simple rounded rectangles for Android. Upstream AGPL-3.0.
+
+Inter font: Rasmus Andersson and the Inter Project Authors.
+Source: https://github.com/google/fonts/tree/main/ofl/inter
+File: Inter[opsz,wght].ttf, bundled as app/src/main/res/font/inter.ttf.
+License: SIL Open Font License 1.1, retained in third_party/Inter-OFL.txt.
+Russian label/help additions and enum labels: scripts/ru-overrides.json;
+upstream Russian gettext catalog remains the base. New help texts are concise
+adaptations, not a replacement technical specification of OrcaSlicer.
+
+Plate toolbar uses the upstream toolbar_open, toolbar_move and toolbar_arrange
+artwork, with their dark-theme variants. Android vector groups normalize the
+visible bounds to match the menu delete action at the same 22 dp tool size.

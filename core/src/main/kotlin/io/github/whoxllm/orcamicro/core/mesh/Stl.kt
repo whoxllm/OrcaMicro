@@ -56,7 +56,7 @@ object StlReader {
                 val start = index
                 while (index < text.length && !text[index].isWhitespace()) index++
                 values.add(text.substring(start, index).toFloatOrNull()
-                    ?: throw StlFormatException("Bad vertex coordinate near character $start"))
+                    ?: throw StlFormatException("Bad vertex coordinate near character ${start}"))
             }
         }
         if (values.size % Mesh.FLOATS_PER_TRIANGLE != 0) throw StlFormatException("Incomplete facet in ASCII STL")

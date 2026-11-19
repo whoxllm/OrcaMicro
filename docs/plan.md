@@ -1,5 +1,7 @@
 # OrcaMicro implementation plan
 
+[← README](../README.md)
+
 Design: [design.md](design.md)
 
 Each milestone ends with its own check.

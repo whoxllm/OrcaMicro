@@ -121,7 +121,7 @@ class CatalogBuilder(
     }
 
     private fun rawPreset(vendor: String, entry: VendorIndex.Entry): JsonObject? =
-        source.read("$vendor/${entry.subPath}")?.let { PresetResolver.json.parseToJsonElement(it) as? JsonObject }
+        source.read("${vendor}/${entry.subPath}")?.let { PresetResolver.json.parseToJsonElement(it) as? JsonObject }
 }
 
 /** A vendor's index file, e.g. resources/profiles/Creality.json. */
@@ -149,6 +149,6 @@ object CatalogTool {
         val catalog = CatalogBuilder(File(args[0])).build(args[2])
         File(args[1]).apply { parentFile?.mkdirs() }.writeText(catalog.toJson())
         val printers = catalog.vendors.sumOf { it.printers.size }
-        println("Catalog: ${catalog.printerVendors.size} vendors, $printers printers -> ${args[1]}")
+        println("Catalog: ${catalog.printerVendors.size} vendors, ${printers} printers -> ${args[1]}")
     }
 }

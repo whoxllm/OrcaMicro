@@ -1,5 +1,7 @@
 # OrcaMicro: a standalone OrcaSlicer APK
 
+[← README](../README.md)
+
 Date: 2026-10-15
 Status: implemented
 

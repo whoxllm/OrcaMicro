@@ -51,9 +51,9 @@ class PresetResolver(
             chain.add(preset)
             val parent = preset.string("inherits").orEmpty()
             if (parent.isEmpty()) break
-            if (!seen.add("$currentVendor/$parent")) throw IllegalStateException("Preset inheritance loop at $parent")
+            if (!seen.add("${currentVendor}/${parent}")) throw IllegalStateException("Preset inheritance loop at ${parent}")
             current = findParent(currentVendor, parent)
-                ?: throw PresetNotFoundException("'$name' inherits '$parent', which no vendor provides")
+                ?: throw PresetNotFoundException("'${name}' inherits '${parent}', which no vendor provides")
         }
         val merged = LinkedHashMap<String, JsonElement>()
         for (preset in chain.asReversed()) merged.putAll(preset)
@@ -72,13 +72,13 @@ class PresetResolver(
     }
 
     private fun load(vendor: String, name: String): JsonObject {
-        val key = "$vendor/$name"
+        val key = "${vendor}/${name}"
         cache[key]?.let { return it }
         val path = catalog.vendor(vendor)?.presets?.get(name)
-            ?: throw PresetNotFoundException("No preset '$name' from $vendor")
-        val text = source.read("$vendor/$path") ?: throw PresetNotFoundException("Missing preset file $vendor/$path")
+            ?: throw PresetNotFoundException("No preset '${name}' from ${vendor}")
+        val text = source.read("${vendor}/${path}") ?: throw PresetNotFoundException("Missing preset file ${vendor}/${path}")
         val parsed = json.parseToJsonElement(text) as? JsonObject
-            ?: throw PresetNotFoundException("Preset file $vendor/$path is not a JSON object")
+            ?: throw PresetNotFoundException("Preset file ${vendor}/${path} is not a JSON object")
         cache[key] = parsed
         return parsed
     }

@@ -1,121 +1,151 @@
+[English](README.md) · [Русский](README.ru.md)
+
+<p align="center">
+  <img src="third_party/OrcaSlicer.svg" width="72" alt="OrcaSlicer logo">
+</p>
+
 # OrcaMicro
 
 A 3D-print slicer for Android that runs [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer)'s
-slicing engine on the phone itself. Open an STL, pick your printer, slice, check the layers and
-save the G-code. No computer, no cloud, no internet permission.
+slicing engine on the phone itself. Prepare a model, slice it on the phone, check the layers, then
+save the G-code or send it to a Klipper or OctoPrint printer.
+
+**Slicing works fully offline.** The network is only used for the model catalogs, app updates and
+printer connections, and only when you use them.
+
+**Android 14+ · 64-bit ARM · OpenGL ES 3 · OrcaSlicer 2.4.2 engine · Beta**
+
+[Download APK](https://github.com/whoxllm/OrcaMicro/releases/latest) · [User guide (RU)](docs/USAGE.md) · [Import profiles (RU)](docs/PROFILES.md) · [Build instructions (RU)](docs/BUILDING.md)
+
+<p align="center">
+  <img src="docs/images/home.png" width="240" alt="Home screen and recent projects">
+  <img src="docs/images/prepare.png" width="240" alt="Build plate, printer, filament and process profiles">
+  <img src="docs/images/preview.png" width="240" alt="Layer preview and toolpath filters">
+</p>
+<p align="center">
+  <img src="docs/images/library.png" width="240" alt="Native model catalog with attribution and licenses">
+  <img src="docs/images/control.png" width="240" alt="Klipper controls and temperature charts on a test connection">
+  <img src="docs/images/print-setup.png" width="240" alt="Quick Print and imported filament presets">
+</p>
 
 ## What it does
 
-- **Any FDM printer**: about 950 printers from OrcaSlicer's profiles, plus generic Marlin,
-  Klipper, RepRapFirmware and Repetier printers you can set up yourself (bed size, nozzle,
-  start and end G-code).
-- **OrcaSlicer's slicing**: walls, infill patterns, top and bottom shells, skirt and brim,
-  retraction, temperatures, spiral vase, and **normal and tree supports**, all computed by
-  OrcaSlicer 2.4.2's own engine.
-- **3D plate**: orbit, pan and zoom, plus move, rotate and scale controls with a check that the
-  model fits the build volume.
-- **Layer preview**: step through the G-code layer by layer, coloured by feature, with print
-  time and filament use.
-- **Export**: save the G-code anywhere through the system file picker (SD card, USB drive,
-  cloud folder) or share it with another app.
+- **Slicing on the phone:** OrcaSlicer 2.4.2's own engine. Walls, infill, shells, skirt and brim,
+  retraction, spiral vase, and normal and tree supports. About 950 bundled printer profiles, plus
+  your own.
+- **Projects:** a home screen with recent projects. Geometry, placement and preset edits are saved
+  on the device, so a project reopens where you left it.
+- **Models:** open STL, 3MF or a model ZIP. Move, rotate, scale, center and check the model fits
+  the build volume.
+- **Settings:** 638 OrcaSlicer parameters with English and Russian labels and help, plus search,
+  categories, favorites and a "changed only" filter.
+- **OrcaSlicer profiles:** import printer, filament and process JSON files or whole profile sets
+  from desktop OrcaSlicer, and save your own presets.
+- **Layer preview:** step through layers, filter by line type and travel moves. Finished G-code
+  includes 32×32 and 400×400 thumbnails that Mainsail, Fluidd and OctoPrint can show.
+- **Printers:** Klipper/Moonraker and OctoPrint. Several saved printers, temperatures and charts,
+  XYZ jog, homing, fans, pause/resume/cancel, and Mainsail/Fluidd inside the app. Uploading and
+  starting a print are separate steps.
+- **Protected STOP:** the emergency stop only fires after you type `Stop Klipper!` exactly.
+- **Model catalogs:** search Printables, MakerWorld, Thingiverse and Cults3D, with author, source,
+  price and license on every card. Downloaded files are cached for 7 days by default.
+- **Quick Print:** catalog card → printer, filament and process → plate → slice → send. Layout
+  inspired by Bambu Handy.
+- **Updates:** the app can check this repository's releases, download the APK in the background,
+  verify its SHA-256 and signature, and hand it to Android's installer.
+- **English and Russian**, light and dark themes.
 
-Bambu Lab printers are not listed yet: their G-code relies on parts of the engine this build
+Bambu Lab printers are not supported yet. Their G-code relies on parts of the engine this build
 does not drive.
 
 ## Get the APK
 
-The newest APK that passed the end-to-end slicing test is on the repository's
-[**latest** release](https://github.com/whoxllm/OrcaMicro/releases/tag/latest):
+1. Open the [latest release](https://github.com/whoxllm/OrcaMicro/releases/latest) on your phone.
+2. Download `OrcaMicro-arm64-vVERSION.apk` from **Assets**.
+3. Open it and allow installs from that app when Android asks.
 
-1. Download `OrcaMicro.apk` from that release on your phone (or copy it over from a computer).
-2. Open it and allow installs from that app when Android asks.
+After that, **About → ⚙ → App updates** finds new releases. Release APKs are always signed with the
+same key, so updates keep your data. [Update details (RU)](docs/UPDATES.md).
 
-Every push also builds an APK in GitHub Actions: the **OrcaMicro-apk** artifact of a
-successful **Build APK** run.
+Every push to `main` also refreshes a [**latest build**](https://github.com/whoxllm/OrcaMicro/releases/tag/latest)
+pre-release with `OrcaMicro.apk`. It's the newest APK that passed the on-emulator slicing test.
 
-Requires Android 9 or newer on a 64-bit ARM phone, which covers practically every phone from
-the last several years.
+**Coming from redfaced97's OrcaSlicer for Android?** OrcaMicro installs as a separate app next to
+it. Export your profiles there and import them here.
 
-## Using it
+## First print
 
-1. **Pick your printer**: on first start choose the brand and model. If yours isn't listed,
-   choose *Generic / custom printer* and set the bed size and start G-code under **Settings →
-   Printer**.
-2. **Open an STL**: use the **+** button, or "Open with" from a file manager.
-3. **Place it**: the pencil button opens rotate, scale and position controls.
-4. **Adjust settings**: layer height, infill, supports, temperatures and more, on top of the
-   selected presets. *Reset* goes back to the preset.
-5. **Slice**, then check the preview and tap **Save G-code**.
+1. Pick a bundled printer, or import your own OrcaSlicer JSON. Imported presets appear under
+   **My presets**.
+2. **Prepare → Add** opens an STL, 3MF or ZIP. Check placement, size and settings.
+3. **Slice**, then check the layers under **Preview**.
+4. Or use **Quick Print** from a catalog card, or **Prepare print** from the plate: choose printer
+   and profiles, adjust layer height, infill and walls, **Slice for printing**, then
+   **Send to printer**.
+5. Make sure the right filament is loaded and the plate is clear. **Upload** stores the file on
+   the printer; **Print** uploads it and starts printing after you confirm.
+
+Changing the model, settings or printer clears the previous slice. STOP sends an emergency
+shutdown, and Klipper then needs `FIRMWARE_RESTART`. For normal control use Pause or Cancel.
+
+## Touch gestures
+
+| Gesture | Action |
+| --- | --- |
+| One-finger drag | Orbit the camera |
+| Two-finger drag | Pan |
+| Pinch | Zoom |
+| Double-tap the model, hold the second touch and drag | Move the model on the plate |
+
+**Placement** (**Edit** on narrow screens) sets exact position, rotation and scale.
+
+## Import desktop presets
+
+Import single JSON files, or bundle your desktop presets on a computer:
+
+```sh
+python3 scripts/export-desktop-presets.py --resources /path/to/OrcaSlicer/resources
+```
+
+Copy `dist/private-presets/user-presets.json` to the phone, open a profile selector and press
+**Import**. The script resolves inheritance and leaves out passwords and API keys.
+[Profile guide (RU)](docs/PROFILES.md).
+
+## Catalogs and limits
+
+Printables and MakerWorld search work without a key. Thingiverse needs your App Token, and Cults
+needs your nickname and API key; set them under **Models → API**. Keys are encrypted with Android
+Keystore and are never included in exported profiles or backups. The Cults API has no file
+downloads, so attach a file you already have. [Catalog guide (RU)](docs/MODELS.md).
+
+OrcaMicro handles **one model, one plate and one material** for now. 3MF objects are combined into
+one model. Not supported yet: multi-material and AMS, painting (color, supports, seams), modifiers,
+variable layer height, multiple plates, and STEP/OBJ import. G-code is not guaranteed to match
+desktop OrcaSlicer for every model. [Compatibility (RU)](docs/COMPATIBILITY.md).
 
 ## How it is built
 
 | Part | What it is |
 |---|---|
-| `app/` | The Android app: Kotlin, Jetpack Compose, OpenGL ES 2 views |
-| `core/` | Pure Kotlin: STL files, model placement, OrcaSlicer profiles, settings, G-code parsing. Unit-tested on any JVM |
+| `app/` | The Android app: Kotlin, Jetpack Compose, OpenGL ES 3 views |
+| `core/` | Pure Kotlin: models, OrcaSlicer profiles and settings, G-code parsing, printer and catalog clients, updater. Unit-tested on any JVM |
 | `native/` | Builds OrcaSlicer's `libslic3r` for Android with a small JNI bridge (`liborcamicro_engine.so`) |
 
-The slicing engine runs in its own Android process, so a crash in native code can't take the
-app down. The design is in [docs/design.md](docs/design.md) and the build plan in [docs/plan.md](docs/plan.md).
+The slicing engine runs in its own Android process, so a crash in native code can't take the app
+down. The original design is in [docs/design.md](docs/design.md). Builds and tests are covered in
+[docs/BUILDING.md](docs/BUILDING.md) (Russian).
 
-### Building
+## Credits
 
-The native engine needs the Android NDK (r27c) and takes a few hours from scratch:
+| | |
+| --- | --- |
+| OrcaMicro: Android app, engine build and JNI bridge | whoxllm and contributors |
+| Touch interface, projects, printer control, model catalogs, Quick Print, updater, Russian translation | [redfaced97](https://github.com/redfaced97), originally released as [OrcaSlicer for Android](https://github.com/redfaced97/OrcaSlicer-Android) |
+| Beta testing | redfaced97 and an Ender 3 V3 SE (Klipper) |
 
-```sh
-export ANDROID_NDK_ROOT=/path/to/ndk/27.2.12479018
-native/scripts/fetch-orca.sh         # clone OrcaSlicer v2.4.2 and apply the Android patch
-native/scripts/build-deps.sh         # cross-compile Boost, TBB, CGAL, OpenCASCADE, OpenCV, ...
-native/scripts/build-engine.sh app/src/main/jniLibs
-```
+Engine, profiles, base translations and icons: [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer),
+by SoftFever and contributors, based on Bambu Studio, PrusaSlicer and Slic3r. OrcaMicro is an
+unofficial project and is not affiliated with the OrcaSlicer team.
 
-Then the app, with OrcaSlicer's profiles:
-
-```sh
-ORCAMICRO_ORCA_DIR=/tmp/orca native/scripts/fetch-orca.sh --profiles-only
-./gradlew :app:assembleRelease -PorcaResourcesDir=/tmp/orca/resources
-```
-
-Core tests run anywhere, without the Android SDK:
-
-```sh
-./gradlew :core:test -PcoreOnly -PorcaResourcesDir=/tmp/orca/resources
-```
-
-On a Linux desktop the same engine builds as `orcamicro_cli`, which runs one slice request (the
-JSON the app sends, described in `native/bridge/engine.hpp`) and is the quickest way to test
-engine changes. Configure OrcaSlicer's patched tree with `-DORCAMICRO_ENGINE=ON
--DORCAMICRO_DIR=$PWD/native -DSLIC3R_GUI=OFF` against desktop builds of the same libraries and
-build the `orcamicro_cli` target.
-
-In CI, `.github/workflows/engine.yml` builds the engine (cached per dependency) whenever
-`native/` changes. `.github/workflows/build.yml` builds the APK and runs an end-to-end slicing
-test on an Android emulator.
-
-### Signing
-
-Release APKs are signed with a key that is kept only in the repository's Actions secrets, never
-in the code. CI publishes an APK only when it was signed with that key, so an APK on the
-releases page always comes from this repository. The release notes list the certificate's
-SHA-256 digest.
-
-| Secret | Value |
-|---|---|
-| `ORCAMICRO_KEYSTORE_BASE64` | the PKCS12 keystore, base64-encoded |
-| `ORCAMICRO_KEYSTORE_PASSWORD` | its password |
-
-The key's alias is `orcamicro`. Locally, point `ORCAMICRO_KEYSTORE`, `ORCAMICRO_KEYSTORE_PASSWORD`
-and optionally `ORCAMICRO_KEY_ALIAS` at a keystore; without them the release APK gets the debug
-key, which is fine for testing.
-
-Keep a copy of the keystore somewhere safe: Android only installs an update signed with the
-same key, so losing it means users have to uninstall before installing a new build.
-
-## License
-
-OrcaMicro is free software under the [GNU Affero General Public License v3](LICENSE), the same
-license as OrcaSlicer, which it is built on. If you share the APK, share the source with it.
-This repository is that source.
-
-OrcaSlicer is by SoftFever and contributors, building on Bambu Studio, PrusaSlicer and Slic3r.
-The printer, process and filament profiles come from OrcaSlicer and its contributors.
+License: **[AGPL-3.0](LICENSE)**. Inter is under [SIL OFL 1.1](third_party/Inter-OFL.txt). Third-party
+notices are in [NOTICE](third_party/NOTICE.txt).

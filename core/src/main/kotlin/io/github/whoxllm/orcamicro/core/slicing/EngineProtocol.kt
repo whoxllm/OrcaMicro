@@ -3,6 +3,7 @@ package io.github.whoxllm.orcamicro.core.slicing
 import io.github.whoxllm.orcamicro.core.settings.BedType
 import io.github.whoxllm.orcamicro.core.settings.PresetEdits
 import io.github.whoxllm.orcamicro.core.settings.PresetEditor
+import io.github.whoxllm.orcamicro.core.settings.PseudoKeys
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -58,12 +59,19 @@ class SliceInputs(
     companion object {
         /** Applies [edits] to flattened presets and pins the bed type that picks the bed temperatures. */
         fun build(machine: JsonObject, process: JsonObject, filament: JsonObject, edits: PresetEdits): SliceInputs {
-            val bedType = PresetEditor.bedType(machine, edits)
-            val editedProcess = PresetEditor.apply(process, edits.process, bedType)
+            val baseMachine = edits.importedMachine ?: machine
+            val baseProcess = edits.importedProcess ?: process
+            val baseFilament = edits.importedFilament ?: filament
+            val bedType = BedType.fromOrca((edits.rawProcess["curr_bed_type"] as? JsonPrimitive)?.content)
+                ?: BedType.fromOrca(edits.machine[PseudoKeys.BED_TYPE])
+                ?: BedType.fromOrca((edits.importedProcess?.get("curr_bed_type") as? JsonPrimitive)?.content)
+                ?: BedType.fromOrca((edits.rawMachine["default_bed_type"] as? JsonPrimitive)?.content)
+                ?: PresetEditor.bedType(baseMachine, edits)
+            val editedProcess = PresetEditor.apply(baseProcess, edits.process, bedType, edits.rawProcess)
             return SliceInputs(
-                machine = PresetEditor.apply(machine, edits.machine, bedType),
+                machine = PresetEditor.apply(baseMachine, edits.machine, bedType, edits.rawMachine),
                 process = JsonObject(editedProcess + ("curr_bed_type" to JsonPrimitive(bedType.orcaName))),
-                filament = PresetEditor.apply(filament, edits.filament, bedType),
+                filament = PresetEditor.apply(baseFilament, edits.filament, bedType, edits.rawFilament),
                 bedType = bedType,
             )
         }

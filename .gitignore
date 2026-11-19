@@ -5,6 +5,7 @@ local.properties
 .idea/
 *.iml
 .kotlin/
+dist/
 
 # Native engine build outputs (built in CI or by native/scripts)
 native/build/
@@ -14,3 +15,7 @@ app/src/main/jniLibs/
 # Signing keys never go in the repository (CI reads the release key from secrets)
 *.keystore
 *.jks
+
+# Python helper cache
+__pycache__/
+*.pyc

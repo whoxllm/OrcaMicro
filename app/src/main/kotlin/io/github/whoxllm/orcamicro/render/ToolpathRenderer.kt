@@ -20,6 +20,7 @@ data class PreviewView(
  * layer is drawn again at full brightness over the dimmed layers below it.
  */
 class ToolpathRenderer : SceneRenderer() {
+    @Volatile var modelColor = 0xE6B83C
     @Volatile private var toolpaths: Toolpaths? = null
     @Volatile private var view = PreviewView(0)
 
@@ -116,11 +117,11 @@ class ToolpathRenderer : SceneRenderer() {
     private fun drawColored(buffer: GlBuffer, first: Int, count: Int, brightness: Float) {
         if (count <= 0) return
         lineProgram.use()
-        GLES20.glLineWidth(lineWidth)
+        GLES20.glLineWidth(options.lineWidth.coerceIn(1f,lineWidth))
         GLES20.glUniformMatrix4fv(lineProgram.uniform("uMvp"), 1, false, mvp, 0)
-        GLES20.glUniform1f(lineProgram.uniform("uUseVertexColor"), 1f)
-        GLES20.glUniform1f(lineProgram.uniform("uBrightness"), brightness)
-        GLES20.glUniform4f(lineProgram.uniform("uColor"), 1f, 1f, 1f, 1f)
+        GLES20.glUniform1f(lineProgram.uniform("uUseVertexColor"), if(options.featureColors) 1f else 0f)
+        GLES20.glUniform1f(lineProgram.uniform("uBrightness"), brightness*options.brightness)
+        GLES20.glUniform4fv(lineProgram.uniform("uColor"),1,rgba(modelColor),0)
         val position = lineProgram.attribute("aPosition")
         val color = lineProgram.attribute("aColor")
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffer.id)
@@ -128,6 +129,13 @@ class ToolpathRenderer : SceneRenderer() {
         GLES20.glEnableVertexAttribArray(color)
         GLES20.glVertexAttribPointer(position, 3, GLES20.GL_FLOAT, false, VERTEX_BYTES, 0)
         GLES20.glVertexAttribPointer(color, 4, GLES20.GL_UNSIGNED_BYTE, true, VERTEX_BYTES, 12)
+        if(options.shadows) {
+            GLES20.glDepthMask(false)
+            GLES20.glUniform1f(lineProgram.uniform("uShadow"),1f)
+            GLES20.glDrawArrays(GLES20.GL_LINES,first,count)
+            GLES20.glDepthMask(true)
+        }
+        GLES20.glUniform1f(lineProgram.uniform("uShadow"),0f)
         GLES20.glDrawArrays(GLES20.GL_LINES, first, count)
         GLES20.glDisableVertexAttribArray(position)
         GLES20.glDisableVertexAttribArray(color)
@@ -139,6 +147,7 @@ class ToolpathRenderer : SceneRenderer() {
         lineProgram.use()
         GLES20.glLineWidth(1f)
         GLES20.glUniformMatrix4fv(lineProgram.uniform("uMvp"), 1, false, mvp, 0)
+        GLES20.glUniform1f(lineProgram.uniform("uShadow"),0f)
         GLES20.glUniform1f(lineProgram.uniform("uUseVertexColor"), 0f)
         GLES20.glUniform1f(lineProgram.uniform("uBrightness"), 1f)
         GLES20.glUniform4fv(lineProgram.uniform("uColor"), 1, TRAVEL_COLOR, 0)

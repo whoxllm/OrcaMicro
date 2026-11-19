@@ -9,6 +9,10 @@ import io.github.whoxllm.orcamicro.core.gcode.Toolpaths
 import io.github.whoxllm.orcamicro.core.mesh.Mesh
 import io.github.whoxllm.orcamicro.core.mesh.Placement
 import io.github.whoxllm.orcamicro.core.profiles.Catalog
+import io.github.whoxllm.orcamicro.core.profiles.PresetExchange
+import io.github.whoxllm.orcamicro.core.profiles.PresetType
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonArray
 import io.github.whoxllm.orcamicro.core.settings.BedShape
 import io.github.whoxllm.orcamicro.core.settings.PresetEdits
 import io.github.whoxllm.orcamicro.core.slicing.EngineResponse
@@ -41,6 +45,23 @@ class EngineSmokeTest {
     fun engineLoads() {
         assertTrue("engine failed to load: ${NativeEngine.unavailableReason}", NativeEngine.isAvailable)
         assertTrue(NativeEngine.version(), NativeEngine.version().startsWith("OrcaSlicer"))
+    }
+
+    @Test
+    fun slicesImportedKlipperPrinterWithRawOrcaSettings() {
+        val imported = PresetExchange.import(
+            """{"type":"machine","name":"Ender 220 Klipper","inherits":"MyKlipper 0.4 nozzle","printable_area":["0x0","220x0","220x220","0x220"],"printable_height":"250"}""",
+            PresetType.MACHINE,
+        ) { profiles.resolve("Custom", it) }
+        val edits = PresetEdits(
+            importedMachine = imported,
+            rawProcess = mapOf("layer_height" to JsonPrimitive("0.25"), "sparse_infill_pattern" to JsonPrimitive("gyroid"), "seam_position" to JsonPrimitive("random")),
+            rawFilament = mapOf("nozzle_temperature" to JsonArray(listOf(JsonPrimitive("220")))),
+        )
+        val sliced = slice("Custom", "MyKlipper 0.4 nozzle", box(10f, 10f, 10f), edits)
+        assertTrue("raw layer height was ignored: ${sliced.toolpaths.layers.size}", sliced.toolpaths.layers.size in 38..42)
+        assertTrue(Feature.OUTER_WALL in sliced.toolpaths.features)
+        assertEquals(220f, sliced.bed.width, 0.01f)
     }
 
     @Test
