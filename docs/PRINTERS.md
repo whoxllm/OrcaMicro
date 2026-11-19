@@ -1,6 +1,6 @@
 # Принтеры, время, графики и статистика
 
-[Русский README](../README.md) · [English README](../README.en.md)
+[← Русский README](../README.ru.md) · [English README](../README.md)
 
 ## Подключение Klipper или OctoPrint
 

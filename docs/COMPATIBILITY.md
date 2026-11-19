@@ -1,6 +1,6 @@
 # Совместимость с OrcaSlicer
 
-[← README](../README.md)
+[← README](../README.ru.md) · [English](../README.md)
 
 | Область | Состояние |
 | --- | --- |

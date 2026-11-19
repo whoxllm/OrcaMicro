@@ -201,7 +201,7 @@ class ModelCatalogClient(
             require(isHttps(url))
             val http=(URI(url).toURL().openConnection() as HttpURLConnection).apply {
                 connectTimeout=12000;readTimeout=20000;instanceFollowRedirects=false
-                setRequestProperty("User-Agent","OrcaSlicer-Android/0.6.0");setRequestProperty("Accept","application/json")
+                setRequestProperty("User-Agent","OrcaMicro");setRequestProperty("Accept","application/json")
                 headers.forEach { (key,value)->setRequestProperty(key,value) }
                 if(body!=null){requestMethod="POST";doOutput=true;setRequestProperty("Content-Type","application/json");outputStream.use { it.write(body.toString().toByteArray()) } }
             }

@@ -1,6 +1,6 @@
 # Импорт профилей с ПК
 
-[← README](../README.md)
+[← README](../README.ru.md) · [English](../README.md)
 
 1. Подготовьте самостоятельные профили скриптом ниже. Он читает `user/default` и папки локально сохранённых аккаунтов OrcaSlicer, включая пользовательские пластики.
 2. Скопируйте `dist/private-presets/user-presets.json` на телефон.

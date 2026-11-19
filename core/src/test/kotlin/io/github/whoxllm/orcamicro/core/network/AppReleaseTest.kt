@@ -6,10 +6,10 @@ import java.security.MessageDigest
 import kotlin.test.*
 
 class AppReleaseTest {
-    private fun release(tag:String="v0.6.2",digest:String="a".repeat(64),url:String="https://github.com/redfaced97/OrcaSlicer-Android/releases/download/$tag/OrcaSlicer-arm64-v${tag.removePrefix("v")}.apk",size:Long=55228255,published:String?=null)=buildJsonObject {
+    private fun release(tag:String="v0.6.2",digest:String="a".repeat(64),url:String="https://github.com/whoxllm/OrcaMicro/releases/download/$tag/OrcaMicro-arm64-v${tag.removePrefix("v")}.apk",size:Long=55228255,published:String?=null)=buildJsonObject {
         published?.let { put("published_at",it) }
         put("tag_name",tag);put("body","## Changes\nSTOP confirmation\nUpdater");put("draft",false);put("prerelease",false)
-        put("assets",buildJsonArray {add(buildJsonObject {put("name","OrcaSlicer-arm64-v${tag.removePrefix("v")}.apk");put("size",size);put("digest","sha256:$digest");put("browser_download_url",url)})})
+        put("assets",buildJsonArray {add(buildJsonObject {put("name","OrcaMicro-arm64-v${tag.removePrefix("v")}.apk");put("size",size);put("digest","sha256:$digest");put("browser_download_url",url)})})
     }
     @Test fun `numeric version comparison handles patch releases and skips unstable versions`() {
         assertTrue(ReleaseVersion.compare("0.6.10","0.6.2")>0);assertTrue(ReleaseVersion.compare("v0.6.2","0.6.0")>0)
@@ -24,7 +24,7 @@ class AppReleaseTest {
         assertEquals(0,ReleaseVersion.compare("0.6.7.0","0.6.7"))
         val update=AppReleases.decode(release(tag="v0.6.7.1"))!!
         assertEquals("0.6.7.1",update.version);assertTrue(update.newerThan("0.6.6"))
-        assertEquals("OrcaSlicer-arm64-v0.6.7.1.apk",update.apkName)
+        assertEquals("OrcaMicro-arm64-v0.6.7.1.apk",update.apkName)
     }
     @Test fun `versions have no component count limit and do not compare component sums`() {
         assertTrue(ReleaseVersion.compare("0.6.7.1.0.0.0.2","0.6.7.1.0.0.0.1")>0)
@@ -82,7 +82,7 @@ class AppReleaseTest {
     @Test fun `only stable ARM64 releases from the app repository are offered`() {
         val update=AppReleases.decode(release())!!
         assertTrue(update.newerThan("0.6.0"));assertFalse(update.newerThan("0.6.2"));assertTrue(update.notes.contains("STOP confirmation"))
-        assertEquals("OrcaSlicer-arm64-v0.6.2.apk",update.apkName)
+        assertEquals("OrcaMicro-arm64-v0.6.2.apk",update.apkName)
         assertFails {AppReleases.decode(release(url="https://github.com/other/project/releases/download/v0.6.2/model.apk"))}
         assertFails {AppReleases.decode(release(digest="invalid"))}
         assertFails {AppReleases.decode(release(size=AppReleases.MAX_APK_BYTES+1))}

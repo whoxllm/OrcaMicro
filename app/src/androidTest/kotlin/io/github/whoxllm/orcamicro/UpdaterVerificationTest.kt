@@ -18,7 +18,7 @@ class UpdaterVerificationTest {
     private fun release(file:File):AppRelease {
         val digest=MessageDigest.getInstance("SHA-256");file.inputStream().use{stream->val b=ByteArray(64*1024);while(true){val n=stream.read(b);if(n<0)break;digest.update(b,0,n)}}
         val hash=digest.digest().joinToString(""){"%02x".format(it.toInt() and 255)}
-        return AppRelease(BuildConfig.VERSION_NAME,"Fixture","https://github.com/redfaced97/OrcaSlicer-Android/releases","https://github.com/redfaced97/OrcaSlicer-Android/fixture.apk","fixture.apk",file.length(),hash)
+        return AppRelease(BuildConfig.VERSION_NAME,"Fixture","https://github.com/whoxllm/OrcaMicro/releases","https://github.com/whoxllm/OrcaMicro/fixture.apk","fixture.apk",file.length(),hash)
     }
     @Test fun correctlyHashedApksStillRequireSamePackageAndNewerVersion() {
         val own=File(context.applicationInfo.sourceDir)

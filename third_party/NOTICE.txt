@@ -6,7 +6,8 @@ Android VectorDrawables: app/src/main/res/drawable/orca_logo.xml and ic_launcher
 Copyright: OrcaSlicer contributors. Upstream project license: GNU AGPL-3.0.
 Official website: https://www.orcaslicer.com/
 Colors #009688, #2B2B2B and #36363B reference upstream src/slic3r/GUI/GUI_App.cpp.
-Android adaptation by redfaced97 / Codex; this is an unofficial port, not an official OrcaSlicer release.
+OrcaMicro by whoxllm and contributors; touch interface, printer control and model catalogs by redfaced97.
+This is an unofficial port, not an official OrcaSlicer release.
 
 Action icons: third_party/orca-icons/*.svg retained from resources/images/ at the
 same pinned OrcaSlicer commit. VectorDrawables orca_*.xml adapt their paths,

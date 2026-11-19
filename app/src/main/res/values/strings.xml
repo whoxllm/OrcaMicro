@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">OrcaSlicer</string>
+    <string name="app_name">OrcaMicro</string>
     <string name="notification_channel_slicing">Slicing</string>
     <string name="notification_slicing">Slicing model</string>
 </resources>

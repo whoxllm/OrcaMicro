@@ -74,7 +74,7 @@ fun UpdateCard() {
 private fun UpdateDialog(state:UpdateState,updater:AppUpdater,onInstall:()->Unit) {
     val release=state.release ?: return
     val active=state.stage in setOf(UpdateStage.DOWNLOADING,UpdateStage.VERIFYING)
-    AlertDialog(onDismissRequest=updater::dismiss,title={Text("OrcaSlicer ${release.version}")},text={
+    AlertDialog(onDismissRequest=updater::dismiss,title={Text("OrcaMicro ${release.version}")},text={
         Column(Modifier.heightIn(max=440.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             Text(tr("Что нового"),style=MaterialTheme.typography.titleMedium)
             SelectionContainer { Text(release.notes.ifBlank { tr("Автор не добавил описание изменений.") },style=MaterialTheme.typography.bodySmall) }

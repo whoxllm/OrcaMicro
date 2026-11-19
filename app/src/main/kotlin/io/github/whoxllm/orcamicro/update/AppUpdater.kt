@@ -85,10 +85,10 @@ class AppUpdater private constructor(private val context:Context) {
         if(_state.value.stage in setOf(UpdateStage.DOWNLOADING,UpdateStage.VERIFYING))return
         try {
             require(isNewer(release)) { tr("Обновление уже установлено") }
-            require(release.apkName=="OrcaSlicer-arm64-v${release.version}.apk"&&release.tag.removePrefix("v")==release.version&&ReleaseVersion.parts(release.tag)!=null&&release.apkUrl=="https://github.com/${AppReleases.REPOSITORY}/releases/download/${release.tag}/${release.apkName}") { tr("Неверный источник обновления") }
+            require(release.apkName==AppReleases.apkName(release.version)&&release.tag.removePrefix("v")==release.version&&ReleaseVersion.parts(release.tag)!=null&&release.apkUrl=="https://github.com/${AppReleases.REPOSITORY}/releases/download/${release.tag}/${release.apkName}") { tr("Неверный источник обновления") }
             clearDownload(remove=true)
             val file=apkFile(release);file.parentFile?.mkdirs();file.delete()
-            val id=downloads.enqueue(DownloadManager.Request(Uri.parse(release.apkUrl)).setTitle("OrcaSlicer ${release.version}").setDescription(tr("Загрузка обновления ARM64")).setMimeType("application/vnd.android.package-archive")
+            val id=downloads.enqueue(DownloadManager.Request(Uri.parse(release.apkUrl)).setTitle("OrcaMicro ${release.version}").setDescription(tr("Загрузка обновления ARM64")).setMimeType("application/vnd.android.package-archive")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setAllowedOverRoaming(false).setDestinationUri(Uri.fromFile(file)))
             kotlin.check(prefs.edit().putLong("download_id",id).putString("download_release",Json.encodeToString(AppRelease.serializer(),release)).putBoolean("auto_install",true).commit())
             _state.update { it.copy(stage=UpdateStage.DOWNLOADING,progress=0,error=null,showDialog=true,autoInstall=false) }
@@ -141,7 +141,7 @@ class AppUpdater private constructor(private val context:Context) {
         notify(7601,tr("Доступна OrcaSlicer {0}" ,release.version),tr("Посмотреть изменения и скачать обновление"))
         prefs.edit().putString("notified",release.version).apply()
     }
-    private fun notifyReady(release:AppRelease) { if(notificationsAllowed())notify(7602,tr("OrcaSlicer {0} готова к установке" ,release.version),tr("Нажмите, чтобы установить проверенное обновление")) }
+    private fun notifyReady(release:AppRelease) { if(notificationsAllowed())notify(7602,tr("OrcaMicro {0} готова к установке" ,release.version),tr("Нажмите, чтобы установить проверенное обновление")) }
     private fun notify(id:Int,title:String,text:String) {
         val manager=context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel("app_updates",tr("Обновления OrcaSlicer"),NotificationManager.IMPORTANCE_DEFAULT))
@@ -150,7 +150,7 @@ class AppUpdater private constructor(private val context:Context) {
         runCatching { manager.notify(id,NotificationCompat.Builder(context,"app_updates").setSmallIcon(R.drawable.ic_notification).setContentTitle(title).setContentText(text).setContentIntent(pending).setAutoCancel(true).build()) }
     }
     companion object {
-        const val ACTION_UPDATES="io.github.redfaced97.orcapocket.SHOW_UPDATES"
+        const val ACTION_UPDATES="io.github.whoxllm.orcamicro.SHOW_UPDATES"
         @Volatile private var instance:AppUpdater?=null
         fun get(context:Context):AppUpdater=instance ?: synchronized(this){instance ?: AppUpdater(context.applicationContext).also { instance=it }}
         fun verifyApk(context:Context,file:File,release:AppRelease) {
