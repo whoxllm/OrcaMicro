@@ -40,9 +40,9 @@ jobs:
       - name: Add the cached engine to the app
         if: steps.engine.outputs.cache-hit == 'true'
         run: mkdir -p app/src/main/jniLibs && cp -r native-out/. app/src/main/jniLibs/
-      # Forks have no engine cache. The published OrcaMicro engine works when the native
-      # sources are unchanged; the script checks that, and the download, by SHA-256.
-      - name: Fetch the published engine for unchanged native sources
+      # Caches are deleted after 7 unused days. The Native engine workflow also publishes each
+      # engine as an engine-<native tree hash> pre-release, which never expires and works for forks.
+      - name: Fetch the released engine for these native sources
         id: prebuilt
         if: steps.engine.outputs.cache-hit != 'true'
         continue-on-error: true

@@ -1,7 +1,9 @@
 name: Native engine
 
 # Cross-compiles OrcaSlicer's slicing core for Android. Slow (hours on a cold cache), so it only
-# runs when native/ changes; the APK workflow picks the result up from the cache.
+# runs when native/ changes. Each engine is kept twice: in the Actions cache (fast, but deleted
+# after 7 unused days) and as an engine-<native tree hash> pre-release, which never expires. The
+# APK workflow and scripts/fetch-prebuilt-engine.sh use the cache first, then the release.
 on:
   push:
     paths:
@@ -26,6 +28,8 @@ jobs:
     name: Native engine (arm64-v8a)
     runs-on: ubuntu-24.04
     timeout-minutes: 350
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -36,8 +40,23 @@ jobs:
           path: native-out
           key: engine-v1-${{ hashFiles('native/**') }}
 
-      - name: Prepare scratch disk and tools
+      - name: Reuse the released engine for these native sources
+        id: released
         if: steps.engine-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: bash scripts/fetch-prebuilt-engine.sh native-out
+
+      - name: Decide whether to build
+        id: need
+        run: |
+          if [ "${{ steps.engine-cache.outputs.cache-hit }}" = "true" ] || [ "${{ steps.released.outcome }}" = "success" ]; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare scratch disk and tools
+        if: steps.need.outputs.build == 'true'
         run: |
           sudo mkdir -p "$ORCAMICRO_WORK" && sudo chown "$USER" "$ORCAMICRO_WORK"
           sudo apt-get update -qq
@@ -45,7 +64,7 @@ jobs:
           df -h / /mnt
 
       - name: Set up the Android NDK
-        if: steps.engine-cache.outputs.cache-hit != 'true'
+        if: steps.need.outputs.build == 'true'
         run: |
           ndk="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
           if [ ! -d "$ndk" ]; then
@@ -54,11 +73,11 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ndk" >> "$GITHUB_ENV"
 
       - name: Fetch and patch OrcaSlicer
-        if: steps.engine-cache.outputs.cache-hit != 'true'
+        if: steps.need.outputs.build == 'true'
         run: bash native/scripts/fetch-orca.sh
 
       - name: Restore built dependencies
-        if: steps.engine-cache.outputs.cache-hit != 'true'
+        if: steps.need.outputs.build == 'true'
         uses: actions/cache/restore@v4
         with:
           path: /mnt/orcamicro/prefix
@@ -67,7 +86,7 @@ jobs:
 
       - name: Build dependencies
         id: deps
-        if: steps.engine-cache.outputs.cache-hit != 'true'
+        if: steps.need.outputs.build == 'true'
         run: bash native/scripts/build-deps.sh
 
       - name: Name the dependency cache
@@ -84,7 +103,7 @@ jobs:
           key: ${{ steps.deps-key.outputs.key }}
 
       - name: Restore compiler cache
-        if: steps.engine-cache.outputs.cache-hit != 'true'
+        if: steps.need.outputs.build == 'true'
         uses: actions/cache/restore@v4
         with:
           path: /mnt/orcamicro/ccache
@@ -93,7 +112,7 @@ jobs:
 
       - name: Build the engine
         id: build-engine
-        if: steps.engine-cache.outputs.cache-hit != 'true'
+        if: steps.need.outputs.build == 'true'
         env:
           CCACHE_DIR: /mnt/orcamicro/ccache
           CCACHE_MAXSIZE: 2G
@@ -106,6 +125,23 @@ jobs:
         with:
           path: /mnt/orcamicro/ccache
           key: ccache-v1-${{ github.run_id }}
+
+      - name: Publish the engine as a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="engine-$(git rev-parse HEAD:native | cut -c1-12)"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "$tag is already published"; exit 0
+          fi
+          (cd native-out && zip -qr "$RUNNER_TEMP/engine-arm64-v8a.zip" .)
+          (cd "$RUNNER_TEMP" && sha256sum engine-arm64-v8a.zip > engine-arm64-v8a.zip.sha256)
+          # Another run may publish the same tag first; that release is just as good.
+          gh release create "$tag" "$RUNNER_TEMP/engine-arm64-v8a.zip" "$RUNNER_TEMP/engine-arm64-v8a.zip.sha256" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
+            --title "Engine $tag" \
+            --notes "OrcaSlicer engine (arm64-v8a) built from native/ tree $(git rev-parse HEAD:native) at ${GITHUB_SHA::7}. Used by the APK build and scripts/fetch-prebuilt-engine.sh. Not an app release." \
+          || gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null
 
       - uses: actions/upload-artifact@v4
         with:
