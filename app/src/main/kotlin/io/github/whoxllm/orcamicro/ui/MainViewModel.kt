@@ -29,6 +29,7 @@ import io.github.whoxllm.orcamicro.data.ProfileRepository
 import io.github.whoxllm.orcamicro.data.SavedState
 import io.github.whoxllm.orcamicro.data.CatalogCredentialStore
 import io.github.whoxllm.orcamicro.data.SettingsStore
+import io.github.whoxllm.orcamicro.cad.CadClient
 import io.github.whoxllm.orcamicro.engine.EngineClient
 import io.github.whoxllm.orcamicro.engine.EngineEvent
 import io.github.whoxllm.orcamicro.engine.EngineResources
@@ -71,6 +72,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val store = SettingsStore(application)
     private val projects = ProjectStore(application)
     private val engine = EngineClient(application)
+    val cadClient = CadClient(application)
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -454,14 +456,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val file=File(app.filesDir,"library/${local}").also { it.parentFile?.mkdirs() }
             try {
                 val name=withContext(Dispatchers.IO) {
+                    val rawName = displayName(uri)
                     app.contentResolver.openInputStream(uri)?.use { input->file.outputStream().use { out->
                         val buffer=ByteArray(64*1024);var total=0
                         while(true){val n=input.read(buffer);if(n<0)break;total+=n;require(total<=ModelFiles.MAX_FILE_BYTES){tr("Файл больше 96 МБ")};out.write(buffer,0,n)}
                     } } ?: error(tr("Файл недоступен"))
+                    if (isStepFile(rawName, file)) {
+                        _state.update { it.copy(libraryPercent=null,libraryProgress=tr("Конвертация STEP…")) }
+                        val stepTmp = File(file.parentFile, "${UUID.randomUUID()}.step")
+                        try {
+                            check(file.renameTo(stepTmp))
+                            val converted = cadClient.stepToStl(stepTmp, file)
+                            require(converted.ok) { converted.error ?: tr("Не удалось прочитать STEP") }
+                        } finally { stepTmp.delete() }
+                    }
                     _state.update { it.copy(libraryPercent=null,libraryProgress=tr("Проверка файла модели…")) }
                     ModelFiles.entries(file)
                     runCatching { app.contentResolver.takePersistableUriPermission(uri,android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                    displayName(uri)
+                    rawName
                 }
                 val old=_state.value.libraryModels.firstOrNull { if(attributed!=null)it.id==attributed.id else it.url==uri.toString() }
                 val card=attributed?.copy(filename=name,localFile=local) ?: old?.copy(filename=name,localFile=local) ?: LibraryModel(source=null,url=uri.toString(),title=name,filename=name,localFile=local)
@@ -471,6 +483,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch(e:Exception) { file.delete();_state.update { it.copy(libraryBusy=false,libraryPercent=null,libraryProgress=null) };showMessage(tr("Не удалось открыть модель: {0}" ,e.message)) }
             catch(e:OutOfMemoryError) { file.delete();_state.update { it.copy(libraryBusy=false,libraryPercent=null,libraryProgress=null) };showMessage(tr("Модель слишком большая для телефона")) }
         }
+    }
+
+    private fun isStepFile(name: String, file: File): Boolean {
+        val lower = name.lowercase()
+        if (lower.endsWith(".step") || lower.endsWith(".stp")) return true
+        val head = ByteArray(64)
+        val n = runCatching { file.inputStream().use { it.read(head) } }.getOrDefault(0)
+        return n > 0 && String(head, 0, n, Charsets.US_ASCII).contains("ISO-10303-21")
     }
 
     private fun displayName(uri: Uri): String {

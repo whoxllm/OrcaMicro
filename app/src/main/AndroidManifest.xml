@@ -58,6 +58,8 @@
                 <data android:mimeType="model/x.stl-ascii" />
                 <data android:mimeType="application/sla" />
                 <data android:mimeType="application/vnd.ms-pki.stl" />
+                <data android:mimeType="application/step" />
+                <data android:mimeType="model/step" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -69,6 +71,8 @@
                 <data android:mimeType="model/x.stl-ascii" />
                 <data android:mimeType="application/sla" />
                 <data android:mimeType="application/vnd.ms-pki.stl" />
+                <data android:mimeType="application/step" />
+                <data android:mimeType="model/step" />
             </intent-filter>
         </activity>
 
@@ -88,6 +92,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:process=":engine" />
+
+        <!-- Parametric CAD and STEP conversion run in their own process, separate from :engine. -->
+        <service
+            android:name=".cad.CadService"
+            android:exported="false"
+            android:process=":cad" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

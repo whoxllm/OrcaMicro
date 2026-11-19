@@ -97,7 +97,7 @@ fun PlateScreen(state: UiState, viewModel: MainViewModel) {
                     Surface(Modifier.align(Alignment.Center).padding(24.dp), shape = MaterialTheme.shapes.medium) {
                         Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(tr("Добавьте модель на стол"), style = MaterialTheme.typography.titleMedium)
-                            Button(onClick = { openModel.launch(arrayOf("*/*")) }, shape = MaterialTheme.shapes.small) { Text(tr("Открыть STL / 3MF")) }
+                            Button(onClick = { openModel.launch(arrayOf("*/*")) }, shape = MaterialTheme.shapes.small) { Text(tr("Открыть STL / 3MF / STEP")) }
                         }
                     }
                 } else {
