@@ -16,7 +16,7 @@ import io.github.whoxllm.orcamicro.core.network.PrinterConnection
 import io.github.whoxllm.orcamicro.core.profiles.PresetType
 import io.github.whoxllm.orcamicro.core.network.*
 
-enum class Screen { HOME, PLATE, PRESETS, SETTINGS, PREVIEW, DEVICE, ABOUT, LIBRARY, PRINT_SETUP }
+enum class Screen { HOME, DESIGN, PLATE, PRESETS, SETTINGS, PREVIEW, DEVICE, ABOUT, LIBRARY, PRINT_SETUP }
 
 /** The loaded model: the mesh as read, how it is placed, and the placed result for display. */
 data class ModelState(
