@@ -86,11 +86,21 @@ class CadEngineTest {
             assertEquals(2, reopened.features.size)
             assertEquals(1000.0, reopened.volumeMm3, 2.0)
 
-            // 3. Stale topo_generation is rejected; current topo_generation succeeds for fillet.
+            // 3. Stale topo_generation is rejected; an impossible fillet rolls back without polluting redo;
+            //    a valid fillet succeeds and undo restores the 1000 mm3 block.
             val stale = withTimeout(60_000) {
                 cad.addFillet(radius = 1.0, edgeIds = listOf(0), topoGeneration = reopened.topoGeneration + 99)
             }
             assertFalse("stale topo_generation must be rejected", stale.ok)
+
+            val impossible = withTimeout(60_000) {
+                cad.addFillet(radius = 999.0, faceGroup = "top", name = "Too Big")
+            }
+            assertFalse("impossible fillet must fail", impossible.ok)
+            val afterFailRedo = withTimeout(60_000) { cad.redo() }
+            assertTrue(afterFailRedo.ok)
+            assertFalse("failed mutation must not leave anything on the redo stack", afterFailRedo.canRedo)
+            assertEquals(1000.0, afterFailRedo.volumeMm3, 2.0)
 
             val filleted = withTimeout(60_000) {
                 cad.addFillet(radius = 1.0, faceGroup = "top", name = "Top Fillet")

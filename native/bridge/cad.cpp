@@ -500,17 +500,33 @@ json build_state_response(const std::string &mesh_path)
     };
 }
 
-json commit_recompute()
-{
-    if (!g_doc.recompute()) {
-        const std::string err = g_doc.error.empty() ? "CAD recompute failed" : g_doc.error;
-        g_doc.undo();
-        throw CadError(err);
+// Saves g_doc.features and checkpoints before a mutation. If the mutation or recompute fails
+// (or throws), restores features, drops the checkpoint via abandon_checkpoint() (so the redo
+// stack is not polluted with the failed state), and recomputes back to the prior valid bodies.
+struct FeatureTransaction {
+    std::vector<CadFeature> saved;
+    bool committed{false};
+
+    FeatureTransaction() : saved(g_doc.features) { g_doc.checkpoint(); }
+    ~FeatureTransaction() {
+        if (!committed) {
+            g_doc.features = std::move(saved);
+            g_doc.abandon_checkpoint();
+            g_doc.recompute();
+        }
     }
-    const std::string mesh_path = write_display_mesh();
-    auto_save_recipe();
-    return build_state_response(mesh_path);
-}
+
+    json commit() {
+        if (!g_doc.recompute()) {
+            const std::string err = g_doc.error.empty() ? "CAD recompute failed" : g_doc.error;
+            throw CadError(err);
+        }
+        committed = true;
+        const std::string mesh_path = write_display_mesh();
+        auto_save_recipe();
+        return build_state_response(mesh_path);
+    }
+};
 
 json handle_step_to_stl(const json &req)
 {
@@ -627,15 +643,15 @@ json run_cad_command(const json &req)
     if (op == "add_sketch") {
         const SketchPlane plane = parse_plane(req);
         const std::string name = req.value("name", "Sketch " + std::to_string(g_doc.features.size() + 1));
-        g_doc.checkpoint();
+        const bool has_entities = req.contains("entities") && req.at("entities").is_array() && !req.at("entities").empty();
+        auto entities = has_entities ? parse_entities(req.at("entities")) : std::vector<SketchEntity>{};
+        auto constraints = (has_entities && req.contains("constraints")) ? parse_constraints(req.at("constraints"))
+                                                                         : std::vector<SketchEntityConstraintDef>{};
+        FeatureTransaction tx;
         int idx = -1;
-        if (req.contains("entities") && req.at("entities").is_array() && !req.at("entities").empty()) {
-            auto entities = parse_entities(req.at("entities"));
-            auto constraints = req.contains("constraints") ? parse_constraints(req.at("constraints"))
-                                                           : std::vector<SketchEntityConstraintDef>{};
+        if (has_entities) {
             idx = g_doc.add_sketch_entities(entities, plane, name, constraints);
             if (!constraints.empty() && !g_doc.solve_sketch_feature(idx)) {
-                g_doc.undo();
                 throw CadError("Sketch constraints could not be solved (over-constrained or conflicting).");
             }
         } else {
@@ -646,7 +662,7 @@ json run_cad_command(const json &req)
             const double r = req.value("radius", 10.0);
             idx = g_doc.add_sketch(shape, plane, w, h, r, name);
         }
-        json resp = commit_recompute();
+        json resp = tx.commit();
         resp["feature_index"] = idx;
         return resp;
     }
@@ -684,11 +700,11 @@ json run_cad_command(const json &req)
         const int target_body = req.value("target_body", -1);
         const std::string name = req.value("name", "Extrude " + std::to_string(g_doc.features.size() + 1));
 
-        g_doc.checkpoint();
+        FeatureTransaction tx;
         const int idx = g_doc.add_extrude(sketch_ref, distance, symmetric, mode, name);
         g_doc.features[idx].flip = flip;
         g_doc.features[idx].target_body = target_body;
-        json resp = commit_recompute();
+        json resp = tx.commit();
         resp["feature_index"] = idx;
         return resp;
     }
@@ -704,7 +720,7 @@ json run_cad_command(const json &req)
         }
         if (!edge_ids.empty()) check_topo_generation(req);
 
-        g_doc.checkpoint();
+        FeatureTransaction tx;
         int idx = -1;
         if (!edge_ids.empty()) {
             idx = is_fillet ? g_doc.add_fillet(size, edge_ids, name)
@@ -715,7 +731,7 @@ json run_cad_command(const json &req)
                             : g_doc.add_chamfer(size, fg, name);
         }
         g_doc.features[idx].target_body = target_body;
-        json resp = commit_recompute();
+        json resp = tx.commit();
         resp["feature_index"] = idx;
         return resp;
     }
@@ -730,10 +746,10 @@ json run_cad_command(const json &req)
         const int target_body = req.value("target_body", -1);
         const std::string name = req.value("name", "Hole " + std::to_string(g_doc.features.size() + 1));
 
-        g_doc.checkpoint();
+        FeatureTransaction tx;
         const int idx = g_doc.add_hole(diameter, depth, through, x, y, plane, name);
         g_doc.features[idx].target_body = target_body;
-        json resp = commit_recompute();
+        json resp = tx.commit();
         resp["feature_index"] = idx;
         return resp;
     }
@@ -745,9 +761,9 @@ json run_cad_command(const json &req)
         const bool keep_tool = req.value("keep_tool", false);
         const std::string name = req.value("name", "Boolean " + std::to_string(g_doc.features.size() + 1));
 
-        g_doc.checkpoint();
+        FeatureTransaction tx;
         const int idx = g_doc.add_boolean(mode, target_body, tool_body, keep_tool, 0.0, -1, -1, name);
-        json resp = commit_recompute();
+        json resp = tx.commit();
         resp["feature_index"] = idx;
         return resp;
     }
@@ -760,7 +776,7 @@ json run_cad_command(const json &req)
         if (solids.empty()) {
             throw CadError(err.empty() ? "STEP file contains no solid geometry" : err);
         }
-        g_doc.checkpoint();
+        FeatureTransaction tx;
         for (size_t i = 0; i < solids.size(); ++i) {
             CadFeature f;
             f.type = CadFeatureType::Import;
@@ -768,7 +784,7 @@ json run_cad_command(const json &req)
             f.imported_solid = solids[i];
             g_doc.features.push_back(std::move(f));
         }
-        return commit_recompute();
+        return tx.commit();
     }
 
     if (op == "remove_feature") {
