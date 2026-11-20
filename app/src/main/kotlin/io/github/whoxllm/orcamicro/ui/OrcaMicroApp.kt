@@ -44,6 +44,7 @@ fun OrcaMicroApp(viewModel: MainViewModel, onInstallUpdate:()->Unit = {}) {
                     BackHandler(enabled = state.screen != Screen.HOME || state.quickPrintPlacement) { viewModel.back() }
                     when (state.screen) {
                         Screen.HOME -> HomeScreen(state,viewModel)
+                        Screen.DESIGN -> DesignScreen(state, viewModel)
                         Screen.PLATE, Screen.SETTINGS -> PlateScreen(state, viewModel)
                         Screen.PRESETS -> PresetsScreen(state, viewModel)
                         Screen.PREVIEW -> PreviewScreen(state, viewModel)

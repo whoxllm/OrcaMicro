@@ -25,7 +25,11 @@ object NativeEngine {
 
     fun version(): String = nativeVersion()
 
+    /** Executes a CAD or STEP command JSON; only called from the :cad process. */
+    fun cadCommand(requestJson: String): String = nativeCadCommand(requestJson)
+
     private external fun nativeSlice(requestJson: String): String
     private external fun nativeProgress(): String
     private external fun nativeVersion(): String
+    private external fun nativeCadCommand(requestJson: String): String
 }

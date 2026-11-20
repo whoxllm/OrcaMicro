@@ -13,7 +13,7 @@ save the G-code or send it to a Klipper or OctoPrint printer.
 **Slicing works fully offline.** The network is only used for the model catalogs, app updates and
 printer connections, and only when you use them.
 
-**Android 14+ · 64-bit ARM · OpenGL ES 3 · OrcaSlicer 2.4.2 engine · Beta**
+**Android 14+ · 64-bit ARM · OpenGL ES 3 · OrcaSlicer 2.5.1 engine · Beta**
 
 [Download APK](https://github.com/whoxllm/OrcaMicro/releases/latest) · [User guide (RU)](docs/USAGE.md) · [Import profiles (RU)](docs/PROFILES.md) · [Build instructions (RU)](docs/BUILDING.md)
 
@@ -28,14 +28,14 @@ printer connections, and only when you use them.
 
 ## What it does
 
-- **Slicing on the phone:** OrcaSlicer 2.4.2's own engine. Walls, infill, shells, skirt and brim,
+- **Slicing on the phone:** OrcaSlicer 2.5.1's own engine. Walls, infill, shells, skirt and brim,
   retraction, spiral vase, and normal and tree supports. About 950 bundled printer profiles, plus
   your own.
 - **Projects:** a home screen with recent projects. Geometry, placement and preset edits are saved
   on the device, so a project reopens where you left it.
 - **Models:** open STL, 3MF or a model ZIP. Move, rotate, scale, center and check the model fits
   the build volume.
-- **Settings:** 638 OrcaSlicer parameters with English and Russian labels and help, plus search,
+- **Settings:** 751 OrcaSlicer parameters with English and Russian labels and help, plus search,
   categories, favorites and a "changed only" filter.
 - **OrcaSlicer profiles:** import printer, filament and process JSON files or whole profile sets
   from desktop OrcaSlicer, and save your own presets.
@@ -93,7 +93,7 @@ shutdown, and Klipper then needs `FIRMWARE_RESTART`. For normal control use Paus
 | One-finger drag | Orbit the camera |
 | Two-finger drag | Pan |
 | Pinch | Zoom |
-| Double-tap the model, hold the second touch and drag | Move the model on the plate |
+| Tap the model, then drag it | Move the model on the plate |
 
 **Placement** (**Edit** on narrow screens) sets exact position, rotation and scale.
 

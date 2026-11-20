@@ -13,10 +13,12 @@ class PlateRenderer : SceneRenderer() {
     @Volatile var offsetX = 0f
     @Volatile var offsetY = 0f
     @Volatile var modelColor: Int = 0xE6B83C
+    @Volatile var modelSelected = false
     private var uploaded: Mesh? = null
 
     /** The model as placed on the bed; [fits] tints it red when it does not fit the build volume. */
     fun setModel(mesh: Mesh?, fits: Boolean) {
+        if (mesh !== this.mesh) modelSelected = false
         this.mesh = mesh
         this.fits = fits
     }
@@ -56,7 +58,9 @@ class PlateRenderer : SceneRenderer() {
         meshProgram.use()
         GLES20.glUniform2f(meshProgram.uniform("uOffset"),offsetX,offsetY)
         GLES20.glUniformMatrix4fv(meshProgram.uniform("uMvp"), 1, false, mvp, 0)
-        GLES20.glUniform4fv(meshProgram.uniform("uColor"), 1, if (fits) rgba(modelColor) else OUTSIDE_COLOR, 0)
+        val baseColor = if (fits) rgba(modelColor) else OUTSIDE_COLOR
+        val color = if (modelSelected) lighten(baseColor, 0.30f) else baseColor
+        GLES20.glUniform4fv(meshProgram.uniform("uColor"), 1, color, 0)
         val position = meshProgram.attribute("aPosition")
         val normal = meshProgram.attribute("aNormal")
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffer.id)
@@ -81,5 +85,12 @@ class PlateRenderer : SceneRenderer() {
     private companion object {
         val MODEL_COLOR = rgba(0xE6B83C)
         val OUTSIDE_COLOR = rgba(0xE5484D)
+
+        fun lighten(color: FloatArray, amount: Float) = floatArrayOf(
+            color[0] + (1f - color[0]) * amount,
+            color[1] + (1f - color[1]) * amount,
+            color[2] + (1f - color[2]) * amount,
+            color[3],
+        )
     }
 }

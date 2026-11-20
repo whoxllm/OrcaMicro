@@ -94,7 +94,7 @@ fun PrintSetupScreen(state:UiState,viewModel:MainViewModel) {
                     r.modelColor=state.modelRgb();r.offsetX=state.model?.offsetX?:0f;r.offsetY=state.model?.offsetY?:0f
                 }
                 Row(verticalAlignment=Alignment.CenterVertically) {
-                    Text(tr("Двойной тап и перенос"),style=MaterialTheme.typography.labelSmall,modifier=Modifier.weight(1f))
+                    Text(tr("Нажмите на модель, чтобы выбрать её, затем перетащите"),style=MaterialTheme.typography.labelSmall,modifier=Modifier.weight(1f))
                     TextButton(onClick=viewModel::editQuickPrintPlacement){OrcaIcon(OrcaAction.Move,null,Modifier.size(20.dp));Text(tr("Изменить"),Modifier.padding(start=4.dp))}
                 }
             } else TextButton(onClick=viewModel::editQuickPrintPlacement){Text(tr("Разместить модель на столе"))}

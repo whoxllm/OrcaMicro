@@ -4,7 +4,7 @@
 # On a desktop the same engine builds as orcamicro_cli, which runs one slice request from a JSON
 # file. It is how the engine is tested without a phone.
 
-set(ORCAMICRO_ENGINE_SOURCES engine.cpp engine.hpp nanosvg.cpp)
+set(ORCAMICRO_ENGINE_SOURCES engine.cpp engine.hpp cad.cpp cad.hpp nanosvg.cpp)
 set(ORCAMICRO_ENGINE_LIBS libslic3r cereal::cereal boost_libs orcamicro_openssl_md5)
 
 if (ANDROID)

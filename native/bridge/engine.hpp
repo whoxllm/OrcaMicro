@@ -26,7 +26,7 @@ std::string slice(const std::string &request_json);
 // Latest progress of the running slice as {"percent":N,"text":"..."}. Safe to call from any thread.
 std::string progress();
 
-// Version of the bundled OrcaSlicer engine, e.g. "OrcaSlicer 2.4.2".
+// Version of the bundled OrcaSlicer engine, e.g. "OrcaSlicer 2.5.1".
 std::string version();
 
 } // namespace orcamicro

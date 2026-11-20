@@ -8,6 +8,7 @@ import io.github.whoxllm.orcamicro.core.profiles.ProfileSource
 import io.github.whoxllm.orcamicro.core.profiles.PresetExchange
 import io.github.whoxllm.orcamicro.core.profiles.PresetType
 import io.github.whoxllm.orcamicro.core.profiles.string
+import io.github.whoxllm.orcamicro.core.profiles.withoutBom
 import kotlinx.serialization.json.JsonObject
 import java.io.FileNotFoundException
 
@@ -38,7 +39,7 @@ class ProfileRepository(private val assets: AssetManager) {
 
     private class AssetProfileSource(private val assets: AssetManager) : ProfileSource {
         override fun read(path: String): String? = try {
-            assets.open("${PROFILES}/${path}").bufferedReader().use { it.readText() }
+            assets.open("${PROFILES}/${path}").bufferedReader().use { it.readText() }.withoutBom()
         } catch (e: FileNotFoundException) {
             null
         }

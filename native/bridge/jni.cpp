@@ -6,6 +6,7 @@
 
 #include <string>
 
+#include "cad.hpp"
 #include "engine.hpp"
 
 namespace {
@@ -44,4 +45,10 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_io_github_whoxllm_orcamicro_engine_NativeEngine_nativeVersion(JNIEnv *env, jobject)
 {
     return to_jstring(env, orcamicro::version());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_io_github_whoxllm_orcamicro_engine_NativeEngine_nativeCadCommand(JNIEnv *env, jobject, jstring request_json)
+{
+    return to_jstring(env, orcamicro::cad_command(to_string(env, request_json)));
 }

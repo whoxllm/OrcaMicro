@@ -28,8 +28,8 @@ android {
         applicationId = "io.github.whoxllm.orcamicro"
         minSdk = 34
         targetSdk = 35
-        versionCode = providers.gradleProperty("appVersionCode").orElse("16").get().toInt()
-        versionName = providers.gradleProperty("appVersionName").orElse("1.1.0").get()
+        versionCode = providers.gradleProperty("appVersionCode").orElse("17").get().toInt()
+        versionName = providers.gradleProperty("appVersionName").orElse("1.2.0").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             // The engine is built for 64-bit ARM phones only.
@@ -76,6 +76,14 @@ android {
     lint {
         abortOnError = true
         checkReleaseBuilds = false
+    }
+
+    packaging {
+        jniLibs {
+            // Keep the engine compressed in the APK (about 75 MB -> about 50 MB download). Android extracts
+            // it on install; the updater only checks that the entry exists.
+            useLegacyPackaging = true
+        }
     }
 }
 

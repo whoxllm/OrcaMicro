@@ -19,7 +19,7 @@ import io.github.whoxllm.orcamicro.R
 
 @Composable
 fun DesktopHeader(state: UiState, viewModel: MainViewModel, actions: @Composable RowScope.() -> Unit = {}) {
-    val tabs = listOf(Screen.PLATE to tr("Подготовка"), Screen.PREVIEW to tr("Просмотр"), Screen.LIBRARY to tr("Модели"), Screen.DEVICE to tr("Принтер"), Screen.ABOUT to tr("О программе"))
+    val tabs = listOf(Screen.DESIGN to tr("Дизайн"), Screen.PLATE to tr("Подготовка"), Screen.PREVIEW to tr("Просмотр"), Screen.LIBRARY to tr("Модели"), Screen.DEVICE to tr("Принтер"), Screen.ABOUT to tr("О программе"))
     val config = LocalConfiguration.current
     val compactTabs = config.screenWidthDp < 400 || config.fontScale > 1.2f
     val selected = when (state.screen) { Screen.SETTINGS, Screen.PRESETS, Screen.PRINT_SETUP -> Screen.PLATE; else -> state.screen }
@@ -41,7 +41,7 @@ fun DesktopHeader(state: UiState, viewModel: MainViewModel, actions: @Composable
             tabs.forEach { (screen, title) ->
                 Tab(selected = selected == screen, modifier = Modifier.semantics { contentDescription = title }, onClick = { viewModel.navigate(screen) }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant) {
                     Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 2.dp), contentAlignment = Alignment.Center) {
-                        Text(if(compactTabs) when(screen) { Screen.PLATE -> tr("Стол"); Screen.PREVIEW -> tr("Слои"); Screen.LIBRARY -> tr("Модели"); Screen.DEVICE -> tr("Принтер"); else -> tr("Инфо") } else title, style = MaterialTheme.typography.labelSmall, maxLines = 2, textAlign = TextAlign.Center)
+                        Text(if(compactTabs) when(screen) { Screen.DESIGN -> "CAD"; Screen.PLATE -> tr("Стол"); Screen.PREVIEW -> tr("Слои"); Screen.LIBRARY -> tr("Модели"); Screen.DEVICE -> tr("Принтер"); else -> tr("Инфо") } else title, style = MaterialTheme.typography.labelSmall, maxLines = 2, textAlign = TextAlign.Center)
                     }
                 }
             }

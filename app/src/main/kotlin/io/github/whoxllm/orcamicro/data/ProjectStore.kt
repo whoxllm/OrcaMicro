@@ -25,6 +25,7 @@ data class ProjectDocument(
     val triangleCount:Int,
     val activeModelId:String?=null,
     val modifiedAt:Long=0,
+    val hasCadRecipe:Boolean=false,
 )
 
 data class RecentProject(val document:ProjectDocument, val thumbnail:File)
@@ -87,5 +88,17 @@ class ProjectStore(context:Context) {
     @Synchronized fun delete(id:String):List<RecentProject> {
         check(!dir(id).exists() || dir(id).deleteRecursively()) { "Could not remove project" }
         return list()
+    }
+
+    fun cadRecipeFile(id: String): File = File(dir(id), "cad.recipe")
+
+    @Synchronized fun saveCadRecipe(id: String, source: File) {
+        val directory = dir(id).apply { check(mkdirs() || isDirectory) }
+        val target = File(directory, "cad.recipe")
+        val tmp = File(directory, "cad.recipe.tmp")
+        try {
+            source.copyTo(tmp, overwrite = true)
+            check(tmp.renameTo(target))
+        } finally { tmp.delete() }
     }
 }

@@ -10,8 +10,8 @@ class OrcaOptionsTest {
     private fun obj(text: String) = Json.parseToJsonElement(text).jsonObject
 
     @Test fun `catalog covers each pinned preset option list without duplicate keys per type`() {
-        assertEquals(638, OrcaOptions.all.size)
-        assertEquals(638, OrcaOptions.all.map { it.type to it.key }.toSet().size)
+        assertEquals(751, OrcaOptions.all.size)
+        assertEquals(751, OrcaOptions.all.map { it.type to it.key }.toSet().size)
         assertEquals("coFloat", OrcaOptions.all.first { it.key == "layer_height" }.valueType)
         assertTrue(OrcaOptions.all.first { it.key == "nozzle_temperature" }.isList)
         assertTrue(OrcaOptions.all.first { it.key == "layer_height" }.matches("высота слоя"))

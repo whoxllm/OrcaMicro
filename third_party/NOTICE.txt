@@ -24,3 +24,8 @@ adaptations, not a replacement technical specification of OrcaSlicer.
 Plate toolbar uses the upstream toolbar_open, toolbar_move and toolbar_arrange
 artwork, with their dark-theme variants. Android vector groups normalize the
 visible bounds to match the menu delete action at the same 22 dp tool size.
+
+SolveSpace constraint solver (libslvs):
+Source: https://github.com/JacobStoren/SolveSpaceLib (extracted from SolveSpace)
+License: GNU GPL-3.0 (compatible with GNU AGPL-3.0 per AGPLv3 Section 13).
+Used by OrcaSlicer's parametric CAD engine.
