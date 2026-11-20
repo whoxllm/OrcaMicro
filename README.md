@@ -1,7 +1,7 @@
 [English](README.md) · [Русский](README.ru.md)
 
 <p align="center">
-  <img src="third_party/OrcaSlicer.svg" width="72" alt="OrcaSlicer logo">
+  <img src="docs/images/orcamicro.svg" width="72" alt="OrcaMicro logo">
 </p>
 
 <h1 align="center">OrcaMicro</h1>
