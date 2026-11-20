@@ -77,6 +77,14 @@ android {
         abortOnError = true
         checkReleaseBuilds = false
     }
+
+    packaging {
+        jniLibs {
+            // Keep the engine compressed in the APK (about 75 MB -> about 50 MB download). Android extracts
+            // it on install; the updater only checks that the entry exists.
+            useLegacyPackaging = true
+        }
+    }
 }
 
 kotlin {

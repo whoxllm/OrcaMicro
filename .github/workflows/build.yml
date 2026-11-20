@@ -118,6 +118,11 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk dist/OrcaMicro-debug.apk
           cp app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk dist/OrcaMicro-tests.apk
           ls -l dist
+          apk_bytes=$(stat -c%s dist/OrcaMicro.apk)
+          if [ "$apk_bytes" -gt 94371840 ]; then
+            echo "::error::dist/OrcaMicro.apk is $apk_bytes bytes (> 90 MB guard; the in-app updater rejects APKs over 96 MB / MAX_APK_BYTES)"
+            exit 1
+          fi
       - name: Check the release signature
         id: certificate
         if: steps.engine-ready.outputs.built == 'true' && steps.signing.outputs.signed == 'true'
