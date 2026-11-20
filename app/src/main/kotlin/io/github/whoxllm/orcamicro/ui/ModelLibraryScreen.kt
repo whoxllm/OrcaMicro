@@ -142,7 +142,7 @@ fun ModelThumbnail(url:String?,modifier:Modifier=Modifier) {
         val decoded=withContext(Dispatchers.IO) { runCatching {
             val uri=URI(url ?: return@withContext null)
             if(uri.scheme!="https"||uri.userInfo!=null)return@withContext null
-            val http=(uri.toURL().openConnection() as HttpURLConnection).apply { connectTimeout=7000;readTimeout=7000;instanceFollowRedirects=false;setRequestProperty("User-Agent","OrcaSlicer-Android/0.6.0") }
+            val http=(uri.toURL().openConnection() as HttpURLConnection).apply { connectTimeout=7000;readTimeout=7000;instanceFollowRedirects=false;setRequestProperty("User-Agent","OrcaMicro") }
             try {
                 if(http.responseCode !in 200..299 || http.contentLengthLong>3*1024*1024)return@withContext null
                 val bytes=http.inputStream.use { it.readNBytes(3*1024*1024+1) };if(bytes.size>3*1024*1024)return@withContext null
