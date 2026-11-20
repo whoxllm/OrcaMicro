@@ -33,8 +33,12 @@ printer connections, and only when you use them.
   your own.
 - **Projects:** a home screen with recent projects. Geometry, placement and preset edits are saved
   on the device, so a project reopens where you left it.
-- **Models:** open STL, 3MF or a model ZIP. Move, rotate, scale, center and check the model fits
-  the build volume.
+- **Models:** open STL, 3MF, STEP or a model ZIP. Tap a model to select it and drag to move it;
+  rotate, scale, center and check the model fits the build volume.
+- **Design (parametric CAD):** OrcaSlicer's own Design engine with a touch interface. Sketch
+  lines, rectangles, circles and arcs with constraints and dimensions, then extrude, fillet,
+  chamfer and add holes. Import STEP parts as solid bodies, undo and redo every step, and send
+  the result straight to the plate. Designs are saved in the project and stay editable.
 - **Settings:** 751 OrcaSlicer parameters with English and Russian labels and help, plus search,
   categories, favorites and a "changed only" filter.
 - **OrcaSlicer profiles:** import printer, filament and process JSON files or whole profile sets
@@ -118,7 +122,7 @@ downloads, so attach a file you already have. [Catalog guide (RU)](docs/MODELS.m
 
 OrcaMicro handles **one model, one plate and one material** for now. 3MF objects are combined into
 one model. Not supported yet: multi-material and AMS, painting (color, supports, seams), modifiers,
-variable layer height, multiple plates, and STEP/OBJ import. G-code is not guaranteed to match
+variable layer height, multiple plates, and OBJ import. G-code is not guaranteed to match
 desktop OrcaSlicer for every model. [Compatibility (RU)](docs/COMPATIBILITY.md).
 
 ## How it is built
