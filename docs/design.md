@@ -8,7 +8,7 @@ Status: implemented
 ## Goal
 
 An Android app that slices 3D models into G-code entirely on the phone, using OrcaSlicer's
-own slicing engine. No PC, no cloud, no network permission. It installs as a sideloaded APK.
+own slicing engine. No PC and no cloud; slicing itself never needs the network. It installs as a sideloaded APK.
 
 ### Requirements
 
