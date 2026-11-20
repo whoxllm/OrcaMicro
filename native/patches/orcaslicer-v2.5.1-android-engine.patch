@@ -148,7 +148,7 @@ index c8d882f2..8584101e 100644
      add_subdirectory(glad)
      # imgui, imguizmo, and hidapi are now included from deps_src
 diff --git a/src/libslic3r/CMakeLists.txt b/src/libslic3r/CMakeLists.txt
-index 92c739b8..c78e90c5 100644
+index 92c739b8..91df1ed0 100644
 --- a/src/libslic3r/CMakeLists.txt
 +++ b/src/libslic3r/CMakeLists.txt
 @@ -227,8 +227,6 @@ set(lisbslic3r_sources
@@ -185,7 +185,21 @@ index 92c739b8..c78e90c5 100644
  unset(CMAKE_POLICY_DEFAULT_CMP0167)
  cmake_policy(POP)
  
-@@ -769,7 +776,6 @@ target_link_libraries(libslic3r
+@@ -688,7 +695,12 @@ if (WIN32)
+ endif()
+ 
+ # Find the OCCT and related libraries
+-set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
++if (ORCAMICRO_ENGINE)
++    list(GET CMAKE_PREFIX_PATH 0 _orcamicro_dep_prefix)
++    set(OpenCASCADE_DIR "${_orcamicro_dep_prefix}/lib/cmake/occt")
++else ()
++    set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
++endif ()
+ find_package(OpenCASCADE REQUIRED)
+ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
+ 
+@@ -769,7 +781,6 @@ target_link_libraries(libslic3r
          libnest2d
          miniz
          opencv_world
@@ -193,7 +207,7 @@ index 92c739b8..c78e90c5 100644
      PRIVATE
          ${CMAKE_DL_LIBS}
          ${EXPAT_LIBRARIES}
-@@ -801,8 +807,18 @@ endif ()
+@@ -801,8 +812,18 @@ endif ()
  
  if (TARGET OpenVDB::openvdb)
      target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
