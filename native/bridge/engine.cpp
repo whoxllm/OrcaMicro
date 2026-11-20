@@ -272,11 +272,12 @@ json run_slice(const json &request)
     if (print.empty())
         throw EngineError("validate", "Nothing to print. The model may be empty or entirely outside the bed.");
 
-    StringObjectException warning;
-    const StringObjectException error = print.validate(&warning);
+    std::vector<StringObjectException> validate_warnings;
+    const StringObjectException error = print.validate(&validate_warnings);
     if (!error.string.empty())
         throw EngineError("validate", error.string);
-    add_unique(warnings, warning.string);
+    for (const StringObjectException &w : validate_warnings)
+        add_unique(warnings, w.string);
 
     print.set_status_callback([&warnings](const PrintBase::SlicingStatus &status) {
         if (status.percent >= 0)
