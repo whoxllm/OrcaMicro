@@ -29,3 +29,11 @@ SolveSpace constraint solver (libslvs):
 Source: https://github.com/JacobStoren/SolveSpaceLib (extracted from SolveSpace)
 License: GNU GPL-3.0 (compatible with GNU AGPL-3.0 per AGPLv3 Section 13).
 Used by OrcaSlicer's parametric CAD engine.
+
+Open CASCADE Technology (OCCT) 8.0.1:
+Source: https://github.com/Open-Cascade-SAS/OCCT (tag V8_0_1), built from source by
+native/scripts/build-deps.sh with OrcaSlicer's patch from deps/OCCT.
+License: GNU LGPL-2.1 with the Open CASCADE Exception. Linked statically into
+liborcamicro_engine.so; the complete source of OrcaMicro and the build scripts that
+produce the library are available in this repository, so it can be rebuilt with a
+modified OCCT. Used for STEP import and OrcaSlicer's parametric CAD engine.
