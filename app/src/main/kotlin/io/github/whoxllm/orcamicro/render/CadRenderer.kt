@@ -237,7 +237,10 @@ internal class CadSurface(context: Context, private val renderer: CadRenderer) :
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                if (pointers == 1 && !moved && hypot(event.x - downX, event.y - downY) > touchSlop) moved = true
+                if (pointers == 1 && !moved && hypot(event.x - downX, event.y - downY) > touchSlop) {
+                    moved = true
+                    lastX = event.x; lastY = event.y
+                }
                 if (pointers == 1 && !scaleDetector.isInProgress && (moved || wasMulti)) {
                     renderer.camera.rotate((event.x - lastX) * 0.35f, (event.y - lastY) * 0.35f)
                     lastX = event.x; lastY = event.y

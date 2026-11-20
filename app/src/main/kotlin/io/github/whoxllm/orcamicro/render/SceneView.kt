@@ -140,6 +140,8 @@ internal class SceneSurface(context: Context, private val renderer: SceneRendere
             MotionEvent.ACTION_MOVE -> {
                 if (pointers == 1 && !movedBeyondSlop && hypot(event.x - downX, event.y - downY) > touchSlop) {
                     movedBeyondSlop = true
+                    lastX = event.x
+                    lastY = event.y
                 }
                 if (dragging && pointers == 1) {
                     if (movedBeyondSlop && event.eventTime - lastDragAt >= 32) {
