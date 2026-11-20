@@ -65,14 +65,14 @@ class CadEngineTest {
             assertTrue("addExtrude failed: ${extruded.error}", extruded.ok)
             assertEquals(1, extruded.bodyCount)
             assertEquals(1000.0, extruded.volumeMm3, 2.0)
-            val bounds = assertNotNull(extruded.bounds)
+            val bounds = requireNotNull(extruded.bounds)
             assertEquals(20f, bounds.sizeX, 0.2f)
             assertEquals(10f, bounds.sizeY, 0.2f)
             assertEquals(5f, bounds.sizeZ, 0.2f)
 
             // Binary display mesh + B-rep edges are written to disk.
-            val meshFile = File(assertNotNull(extruded.meshPath))
-            val displayMesh = assertNotNull("display.cadmesh unreadable", CadDisplayMesh.read(meshFile))
+            val meshFile = File(requireNotNull(extruded.meshPath))
+            val displayMesh = requireNotNull(CadDisplayMesh.read(meshFile)) { "display.cadmesh unreadable" }
             assertTrue("expected triangles", displayMesh.triangleCount >= 12)
             assertTrue("expected B-rep edge segments", displayMesh.edgeSegmentCount >= 12)
 
