@@ -64,24 +64,22 @@ internal fun PluginSettingsPage(plugin: InstalledPlugin, cap: PluginCapabilityIn
                             return WebResourceResponse("text/plain", "UTF-8", null)
                         }
                     }
-                    webChromeClient = object : WebChromeClient() {
-                        override fun onJsPrompt(view: WebView, url: String?, message: String?, value: String?,
-                                                result: JsPromptResult): Boolean {
-                            result.cancel()
-                            if (message != "orca-save" && message != "orca-reset") return true
-                            scope.launch {
-                                try {
-                                    val saved = repository.edit {
-                                        if (message == "orca-reset") resetConfig(id, cap.name)
-                                        else saveConfig(id, cap.name, requireNotNull(value))
-                                    }
-                                    val config = saved.configs[cap.name] ?: cap.defaultConfig
-                                    if (page.isAttachedToWindow) page.evaluateJavascript("window.orcaUpdated(" + jsString(config) + ")", null)
-                                } catch (e: CancellationException) { throw e } catch (e: Exception) { onError(e) }
-                            }
-                            return true
+                    fun persist(value: String?) {
+                        scope.launch {
+                            try {
+                                if (!page.isAttachedToWindow) return@launch
+                                val saved = repository.edit {
+                                    if (value == null) resetConfig(id, cap.name) else saveConfig(id, cap.name, value)
+                                }
+                                val config = saved.configs[cap.name] ?: cap.defaultConfig
+                                if (page.isAttachedToWindow) page.evaluateJavascript("window.orcaUpdated(" + jsString(config) + ")", null)
+                            } catch (e: CancellationException) { throw e } catch (e: Exception) { onError(e) }
                         }
                     }
+                    addJavascriptInterface(object {
+                        @JavascriptInterface fun save(value: String) = persist(value)
+                        @JavascriptInterface fun reset() = persist(null)
+                    }, "OrcaConfig")
                     val hosts = if (network) " http: https:" else ""
                     val policy = "default-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; " +
                         "script-src 'unsafe-inline'$hosts; style-src 'unsafe-inline'$hosts; img-src data:$hosts; " +
@@ -92,6 +90,16 @@ internal fun PluginSettingsPage(plugin: InstalledPlugin, cap: PluginCapabilityIn
                         <style>$css</style><script>
                         (() => {
                             let config = JSON.parse(${jsString(current)});
+                            // Some desktop pages size their panel to 100% of the document.
+                            // Android WebView can initially resolve that document height to zero.
+                            addEventListener('DOMContentLoaded', () => {
+                                const root = document.documentElement;
+                                if (root.getBoundingClientRect().height === 0) {
+                                    const fit = () => { root.style.height = innerHeight + 'px'; };
+                                    fit();
+                                    addEventListener('resize', fit);
+                                }
+                            });
                             const callbacks = [];
                             const copy = () => JSON.parse(JSON.stringify(config));
                             window.orcaUpdated = raw => {
@@ -100,8 +108,8 @@ internal fun PluginSettingsPage(plugin: InstalledPlugin, cap: PluginCapabilityIn
                             };
                             window.orca = {
                                 getConfig: copy,
-                                saveConfig: obj => { prompt('orca-save', JSON.stringify(obj)); },
-                                restoreDefaults: () => { prompt('orca-reset', ''); },
+                                saveConfig: obj => OrcaConfig.save(JSON.stringify(obj)),
+                                restoreDefaults: () => OrcaConfig.reset(),
                                 onConfig: callback => { callbacks.push(callback); callback(copy()); },
                                 getContext: () => ({scope: 'global', readOnly: false})
                             };
@@ -111,7 +119,7 @@ internal fun PluginSettingsPage(plugin: InstalledPlugin, cap: PluginCapabilityIn
                     val html = "<!doctype html>" + bridge + cap.configUi.orEmpty()
                     loadData(Base64.encodeToString(html.toByteArray(), Base64.NO_WRAP), "text/html", "base64")
                 }
-            }, onRelease = { it.stopLoading(); it.webChromeClient = null; it.destroy() })
+            }, onRelease = { it.stopLoading(); it.removeJavascriptInterface("OrcaConfig"); it.destroy() })
         }
     }
 }
