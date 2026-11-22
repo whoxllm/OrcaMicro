@@ -37,3 +37,20 @@ License: GNU LGPL-2.1 with the Open CASCADE Exception. Linked statically into
 liborcamicro_engine.so; the complete source of OrcaMicro and the build scripts that
 produce the library are available in this repository, so it can be rebuilt with a
 modified OCCT. Used for STEP import and OrcaSlicer's parametric CAD engine.
+
+CPython 3.12.12:
+Source: https://www.python.org/ (compiled for Android arm64-v8a via Chaquopy)
+License: Python Software Foundation License Version 2.
+Used as the embedded Python interpreter for OrcaSlicer slicing-pipeline plugins.
+
+Chaquopy Python target 3.12.12-0:
+Source: https://repo1.maven.org/maven2/com/chaquo/python/target/3.12.12-0/
+License: MIT License.
+Provides prebuilt CPython 3.12 shared libraries, extension modules, and standard
+library archives for Android arm64-v8a.
+
+OrcaSlicer example slicing-pipeline plugins:
+Source: https://github.com/SoftFever/OrcaSlicer (tag v2.5.1, sandboxes/orca_*_plugin_any.py)
+Files: app/src/main/assets/plugins/orca_{gcode_stamp,twistify,fuzzy_slices,inset}.py
+License: GNU AGPL-3.0.
+
