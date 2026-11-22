@@ -1,16 +1,20 @@
 package io.github.whoxllm.orcamicro.engine
 
 import android.content.Context
+import android.system.Os
 import io.github.whoxllm.orcamicro.BuildConfig
 import io.github.whoxllm.orcamicro.core.mesh.Mesh
 import io.github.whoxllm.orcamicro.core.mesh.Placement
 import io.github.whoxllm.orcamicro.core.mesh.StlWriter
 import io.github.whoxllm.orcamicro.core.slicing.EngineRequest
+import io.github.whoxllm.orcamicro.core.slicing.PluginsRequest
 import io.github.whoxllm.orcamicro.core.slicing.SliceInputs
 import io.github.whoxllm.orcamicro.data.ProfileRepository
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import java.io.BufferedInputStream
 import java.io.File
+import java.util.zip.ZipInputStream
 
 /** The files for one slice: model, three presets, output G-code and the engine's log. */
 class SliceJob(val dir: File) {
@@ -21,7 +25,7 @@ class SliceJob(val dir: File) {
     val gcode = File(dir, "output.gcode")
     val log = File(dir, "engine.log")
 
-    fun request(resourcesDir: File, placement: Placement) = EngineRequest(
+    fun request(resourcesDir: File, placement: Placement, plugins: PluginsRequest? = null) = EngineRequest(
         resourcesDir = resourcesDir.path,
         workDir = dir.path,
         modelPath = model.path,
@@ -31,6 +35,7 @@ class SliceJob(val dir: File) {
         outputPath = gcode.path,
         centerX = placement.centerX.toDouble(),
         centerY = placement.centerY.toDouble(),
+        plugins = plugins,
     )
 
     /** The tail of the engine's log, for error reports. */
@@ -76,5 +81,53 @@ object EngineResources {
         }
         target.mkdirs()
         for (child in children) copyAssets(context, "${path}/${child}", File(target, child))
+    }
+}
+
+/** Extracts the bundled CPython 3.12 stdlib and symlinks lib-dynload extensions from nativeLibraryDir. */
+object PythonRuntime {
+    @Synchronized
+    fun ensure(context: Context): File {
+        val home = File(context.filesDir, "python")
+        val stamp = File(home, ".version")
+        val libDir = File(home, "lib/python3.12")
+        val dynloadDir = File(libDir, "lib-dynload")
+        val nativeLibDir = File(context.applicationInfo.nativeLibraryDir)
+        val version = "${BuildConfig.VERSION_CODE}-${BuildConfig.ORCA_VERSION}-${nativeLibDir.path}"
+        val dynlinksOk = dynloadDir.isDirectory && dynloadDir.listFiles()?.none { !it.exists() } == true
+        if (stamp.isFile && stamp.readText() == version && File(libDir, "encodings/__init__.py").isFile && dynlinksOk) {
+            return home
+        }
+        home.deleteRecursively()
+        libDir.mkdirs()
+        val canonicalLibBase = libDir.canonicalPath + File.separator
+        context.assets.open("python/stdlib.zip").use { raw ->
+            ZipInputStream(BufferedInputStream(raw)).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    val out = File(libDir, entry.name)
+                    require(out.canonicalPath == libDir.canonicalPath || out.canonicalPath.startsWith(canonicalLibBase)) {
+                        "Bad zip entry: ${entry.name}"
+                    }
+                    if (entry.isDirectory) {
+                        out.mkdirs()
+                    } else {
+                        out.parentFile?.mkdirs()
+                        out.outputStream().use { zip.copyTo(it) }
+                    }
+                    zip.closeEntry()
+                    entry = zip.nextEntry
+                }
+            }
+        }
+        dynloadDir.mkdirs()
+        for (so in nativeLibDir.listFiles().orEmpty()) {
+            if (!so.name.startsWith("libpydyn_") || !so.name.endsWith(".so")) continue
+            val link = File(dynloadDir, so.name.removePrefix("libpydyn_"))
+            link.delete()
+            Os.symlink(so.absolutePath, link.absolutePath)
+        }
+        stamp.writeText(version)
+        return home
     }
 }
