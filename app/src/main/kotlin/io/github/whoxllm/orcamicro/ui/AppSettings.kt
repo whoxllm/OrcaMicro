@@ -20,11 +20,16 @@ import io.github.whoxllm.orcamicro.core.i18n.tr
 import io.github.whoxllm.orcamicro.core.network.ModelCache
 
 @Composable
-fun AppSettingsContent(state: UiState, vm: MainViewModel) {
+fun AppSettingsContent(state: UiState, vm: MainViewModel, openPlugins: () -> Unit) {
     var api by remember { mutableStateOf(false) }
     val size = Formatter.formatShortFileSize(LocalContext.current,state.modelCacheBytes)
     TextButton(onClick=vm::closeAppSettings) { Text(tr("‹ О программе")) }
     Text(tr("Настройки приложения"),style=MaterialTheme.typography.headlineSmall)
+    OutlinedButton(onClick = openPlugins, modifier = Modifier.fillMaxWidth()) {
+        OrcaIcon(OrcaAction.Settings, null)
+        Spacer(Modifier.width(8.dp))
+        Text(tr("Плагины"))
+    }
     LanguageSettingsCard(state,vm)
     SettingsGroup(tr("Графика · Dev menu")) { GraphicsSettings(state,vm) }
     SettingsGroup(tr("Каталоги и кэш моделей")) {

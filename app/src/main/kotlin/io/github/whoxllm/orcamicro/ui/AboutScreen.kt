@@ -52,6 +52,11 @@ private val thirdParty = listOf(
 
 @Composable
 fun AboutScreen(state: UiState, viewModel: MainViewModel) {
+    val pluginsOpen = androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    if (pluginsOpen.value) {
+        PluginsScreen(viewModel.plugins) { pluginsOpen.value = false }
+        return
+    }
     val context = LocalContext.current
     fun open(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
     androidx.activity.compose.BackHandler(enabled=state.appSettingsOpen) { viewModel.closeAppSettings() }
@@ -60,7 +65,7 @@ fun AboutScreen(state: UiState, viewModel: MainViewModel) {
     } }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if(state.appSettingsOpen) {
-                AppSettingsContent(state,viewModel)
+                AppSettingsContent(state,viewModel) { pluginsOpen.value = true }
                 return@Column
             }
             Text("OrcaMicro ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.headlineSmall)
