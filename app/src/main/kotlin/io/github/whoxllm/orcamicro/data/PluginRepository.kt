@@ -20,12 +20,8 @@ data class InstalledPlugin(val state: PluginState, val header: PluginHeader?) {
     val author get() = state.inspected?.author.orEmpty().ifBlank { header?.author.orEmpty() }
 }
 
-class PluginRepository(private val context: Context, engine: PluginEngine? = null) {
-    // Replaced by the real client at the engine merge. Leave inspection pending until it is available.
-    private val library = PluginLibrary(context.filesDir.resolve("plugins"), engine ?: object : PluginEngine {
-        override fun pythonHome() = context.filesDir.resolve("python").absolutePath
-        override suspend fun inspect(request: PluginInspectRequest) = PluginInspectResult(false, error = "busy")
-    })
+class PluginRepository(private val context: Context, engine: PluginEngine) {
+    private val library = PluginLibrary(context.filesDir.resolve("plugins"), engine)
     private val mutex = Mutex()
     private val items = MutableStateFlow<List<InstalledPlugin>>(emptyList())
     val plugins = items.asStateFlow()
@@ -39,7 +35,7 @@ class PluginRepository(private val context: Context, engine: PluginEngine? = nul
                     val names = context.assets.list("plugins").orEmpty().toSet()
                     val assets = PluginLibrary.builtInOrder.map { "$it.py" }.filter { it in names }
                         .associateWith { name -> context.assets.open("plugins/$name").use { it.readBytes() } }
-                    if (assets.isNotEmpty()) library.installBuiltIns(assets)
+                    if (assets.isNotEmpty()) library.stageBuiltIns(assets)
                     if (assets.size == PluginLibrary.builtInOrder.size) {
                         preferences.edit().putInt("assetsVersion", BuildConfig.VERSION_CODE).apply()
                     }

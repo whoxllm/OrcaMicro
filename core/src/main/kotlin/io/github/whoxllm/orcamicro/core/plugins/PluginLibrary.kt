@@ -27,6 +27,7 @@ data class PluginState(
 class PluginLibrary(private val folder: File, private val engine: PluginEngine) {
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
     private val orderFile = folder.resolve("order.json")
+    private val busy = mutableSetOf<String>()
     private val validId = Regex("[a-z0-9_]+")
 
     private fun directory(id: String): File {
@@ -96,6 +97,7 @@ class PluginLibrary(private val folder: File, private val engine: PluginEngine) 
         val fingerprint = digest(file)
         val result = engine.inspect(PluginInspectRequest(engine.pythonHome(), file.path, dir.path))
         val inspected = result.takeUnless { !it.ok && it.error == "busy" }
+        if (inspected == null) busy.add(id) else busy.remove(id)
         val saved = save(plugin.copy(inspected = inspected))
         if (inspected != null) replace(dir.resolve(".inspected"), fingerprint.toByteArray())
         return saved
@@ -109,8 +111,9 @@ class PluginLibrary(private val folder: File, private val engine: PluginEngine) 
     }
 
     /** An empty result means the plugin is on. Otherwise these grants need a decision. */
-    fun turnOn(id: String): Set<String> {
-        val plugin = state(id)
+    suspend fun turnOn(id: String): Set<String> {
+        val saved = state(id)
+        val plugin = if (saved.inspected == null) inspect(id) else saved
         if (plugin.enabled) return emptySet()
         val inspected = requireNotNull(plugin.inspected)
         require(inspected.ok)
@@ -145,6 +148,12 @@ class PluginLibrary(private val folder: File, private val engine: PluginEngine) 
     }
 
     suspend fun installBuiltIns(files: Map<String, ByteArray>) {
+        stageBuiltIns(files)
+        for (id in builtInOrder) if ("$id.py" in files) inspect(id)
+    }
+
+    /** Install assets at startup without taking the engine away from an incoming slice. */
+    fun stageBuiltIns(files: Map<String, ByteArray>) {
         check(folder.isDirectory || folder.mkdirs())
         val original = list().map { it.id }
         for (id in builtInOrder) {
@@ -156,8 +165,7 @@ class PluginLibrary(private val folder: File, private val engine: PluginEngine) 
                 PluginState(id, builtIn = true, source = "builtin", entry = name)
             check(plugin.builtIn && plugin.entry == name)
             replace(dir.resolve(name), bytes)
-            save(plugin)
-            inspect(id)
+            save(plugin.copy(inspected = null))
         }
         val added = builtInOrder.filter { it !in original && files.containsKey("$it.py") }
         writeOrder(added + original)
@@ -165,6 +173,7 @@ class PluginLibrary(private val folder: File, private val engine: PluginEngine) 
 
     fun delete(id: String) {
         require(!state(id).builtIn)
+        busy.remove(id)
         val remaining = list().map { it.id }.filter { it != id }
         val trash = folder.resolve(".deleted-" + java.util.UUID.randomUUID())
         Files.move(directory(id).toPath(), trash.toPath(), ATOMIC_MOVE)
@@ -220,8 +229,13 @@ class PluginLibrary(private val folder: File, private val engine: PluginEngine) 
         return java.util.Base64.getEncoder().encodeToString(hash.digest())
     }
 
-    suspend fun refreshChanged() {
+    suspend fun retryBusy() {
+        for (id in busy.toList()) inspect(id)
+    }
+
+    suspend fun refreshChanged(enabledOnly: Boolean = false) {
         for (plugin in list()) {
+            if (enabledOnly && !plugin.enabled) continue
             val dir = directory(plugin.id)
             val stamp = dir.resolve(".inspected")
             if (plugin.inspected == null || !stamp.isFile || stamp.readText() != digest(dir.resolve(plugin.entry))) {

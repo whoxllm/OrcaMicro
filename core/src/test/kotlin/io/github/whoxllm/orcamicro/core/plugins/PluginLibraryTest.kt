@@ -147,6 +147,17 @@ class PluginLibraryTest {
         assertEquals("syntax error", lib.inspect("demo").inspected?.error)
     }
 
+    @Test fun `an inactive built-in needs no engine for startup or slicing`() = run {
+        val lib = library()
+        lib.stageBuiltIns(mapOf("orca_twistify.py" to script))
+        lib.refreshChanged(enabledOnly = true)
+        assertNull(lib.sliceRequest())
+        assertNull(lib.list().single().inspected)
+        assertTrue(lib.turnOn("orca_twistify").isEmpty())
+        assertEquals(result, lib.list().single().inspected)
+        assertEquals(2, lib.sliceRequest()!!.items.size)
+    }
+
     private fun library() = PluginLibrary(folder, engine)
     private fun <T> run(block: suspend () -> T): T {
         val completion = CompletableFuture<T>()
