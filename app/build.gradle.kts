@@ -72,6 +72,7 @@ android {
     }
 
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/orcaAssets").get().asFile)
+    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/pythonAssets").get().asFile)
 
     lint {
         abortOnError = true
@@ -144,7 +145,27 @@ val buildOrcaCatalog by tasks.registering(JavaExec::class) {
     })
 }
 
-tasks.named("preBuild") { dependsOn(buildOrcaCatalog) }
+val pythonStdlibZip = providers.gradleProperty("pythonStdlibZip")
+val generatedPythonAssets = layout.buildDirectory.dir("generated/pythonAssets")
+
+val copyPythonStdlib by tasks.registering(Sync::class) {
+    description = "Copies the trimmed CPython 3.12 standard library zip into the app assets."
+    val zipFile = pythonStdlibZip.map { file(it) }
+        .orElse(rootProject.file("native/build/python-stdlib.zip"))
+    from(zipFile) {
+        rename { "stdlib.zip" }
+        into("python")
+    }
+    into(generatedPythonAssets)
+    doFirst {
+        val f = zipFile.get()
+        require(f.isFile) {
+            "Pass -PpythonStdlibZip=<path to trimmed stdlib.zip> (see native/scripts/stage-python-stdlib.sh)"
+        }
+    }
+}
+
+tasks.named("preBuild") { dependsOn(buildOrcaCatalog, copyPythonStdlib) }
 
 dependencies {
     implementation(project(":core"))

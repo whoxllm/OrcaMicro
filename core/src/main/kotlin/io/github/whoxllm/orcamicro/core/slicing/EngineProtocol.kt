@@ -23,6 +23,7 @@ data class EngineRequest(
     @SerialName("center_x") val centerX: Double,
     @SerialName("center_y") val centerY: Double,
     @SerialName("log_level") val logLevel: Int = 2,
+    val plugins: PluginsRequest? = null,
 ) {
     fun toJson(): String = EngineJson.encodeToString(serializer(), this)
 }
@@ -34,6 +35,7 @@ data class EngineResponse(
     val warnings: List<String> = emptyList(),
     val stage: String? = null,
     val error: String? = null,
+    @SerialName("plugin_messages") val pluginMessages: List<PluginMessage> = emptyList(),
 ) {
     companion object {
         fun parse(json: String): EngineResponse = EngineJson.decodeFromString(serializer(), json)

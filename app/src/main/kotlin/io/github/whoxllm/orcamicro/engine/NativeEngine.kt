@@ -28,8 +28,12 @@ object NativeEngine {
     /** Executes a CAD or STEP command JSON; only called from the :cad process. */
     fun cadCommand(requestJson: String): String = nativeCadCommand(requestJson)
 
+    /** Executes an out-of-slice plugin command (such as inspect); only called from the :engine process. */
+    fun pluginCommand(requestJson: String): String = nativePluginCommand(requestJson)
+
     private external fun nativeSlice(requestJson: String): String
     private external fun nativeProgress(): String
     private external fun nativeVersion(): String
     private external fun nativeCadCommand(requestJson: String): String
+    private external fun nativePluginCommand(requestJson: String): String
 }

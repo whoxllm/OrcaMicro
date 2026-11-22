@@ -19,6 +19,7 @@ import androidx.core.app.ServiceCompat
 import io.github.whoxllm.orcamicro.R
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 /**
@@ -29,7 +30,7 @@ import kotlin.concurrent.thread
 class EngineService : Service() {
     private val ipcThread = HandlerThread("engine-ipc").apply { start() }
     private val messenger = Messenger(Handler(ipcThread.looper) { message -> handle(message); true })
-    @Volatile private var busy = false
+    private val busy = AtomicBoolean(false)
 
     override fun onBind(intent: Intent?): IBinder = messenger.binder
 
@@ -45,12 +46,20 @@ class EngineService : Service() {
             MSG_SLICE -> {
                 val request = message.data.getString(KEY_JSON) ?: return
                 val replyTo = message.replyTo ?: return
-                if (busy) {
+                if (!busy.compareAndSet(false, true)) {
                     reply(replyTo, MSG_RESULT, errorJson("busy", "Another slice is already running"))
                     return
                 }
-                busy = true
                 startSlice(request, replyTo)
+            }
+            MSG_PLUGIN -> {
+                val request = message.data.getString(KEY_JSON) ?: return
+                val replyTo = message.replyTo ?: return
+                if (!busy.compareAndSet(false, true)) {
+                    reply(replyTo, MSG_RESULT, pluginErrorJson("busy"))
+                    return
+                }
+                startPluginCommand(request, replyTo)
             }
             MSG_CANCEL -> Process.killProcess(Process.myPid())
         }
@@ -58,24 +67,46 @@ class EngineService : Service() {
 
     private fun startSlice(request: String, replyTo: Messenger) {
         val worker = thread(name = "orcamicro-slice") {
-            val result = try {
-                if (!NativeEngine.isAvailable) {
-                    errorJson("engine", "The slicing engine is missing from this build (${NativeEngine.unavailableReason})")
-                } else {
-                    NativeEngine.slice(request)
+            try {
+                val result = try {
+                    if (!NativeEngine.isAvailable) {
+                        errorJson("engine", "The slicing engine is missing from this build (${NativeEngine.unavailableReason})")
+                    } else {
+                        NativeEngine.slice(request)
+                    }
+                } catch (t: Throwable) {
+                    errorJson("engine", "${t.javaClass.simpleName}: ${t.message}")
                 }
-            } catch (t: Throwable) {
-                errorJson("engine", "${t.javaClass.simpleName}: ${t.message}")
+                reply(replyTo, MSG_RESULT, result)
+            } finally {
+                busy.set(false)
+                ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
-            reply(replyTo, MSG_RESULT, result)
-            busy = false
-            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-            stopSelf()
         }
         thread(name = "orcamicro-progress") {
             while (worker.isAlive) {
                 if (NativeEngine.isAvailable) reply(replyTo, MSG_PROGRESS, NativeEngine.progress())
                 Thread.sleep(PROGRESS_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun startPluginCommand(request: String, replyTo: Messenger) {
+        thread(name = "orcamicro-plugin") {
+            try {
+                val result = try {
+                    if (!NativeEngine.isAvailable) {
+                        pluginErrorJson("The slicing engine is missing from this build (${NativeEngine.unavailableReason})")
+                    } else {
+                        NativeEngine.pluginCommand(request)
+                    }
+                } catch (t: Throwable) {
+                    pluginErrorJson("${t.javaClass.simpleName}: ${t.message}")
+                }
+                reply(replyTo, MSG_RESULT, result)
+            } finally {
+                busy.set(false)
             }
         }
     }
@@ -91,6 +122,11 @@ class EngineService : Service() {
     private fun errorJson(stage: String, message: String): String = buildJsonObject {
         put("ok", false)
         put("stage", stage)
+        put("error", message)
+    }.toString()
+
+    private fun pluginErrorJson(message: String): String = buildJsonObject {
+        put("ok", false)
         put("error", message)
     }.toString()
 
@@ -119,6 +155,7 @@ class EngineService : Service() {
         const val MSG_CANCEL = 2
         const val MSG_PROGRESS = 3
         const val MSG_RESULT = 4
+        const val MSG_PLUGIN = 5
         const val KEY_JSON = "json"
 
         private const val CHANNEL_ID = "slicing"

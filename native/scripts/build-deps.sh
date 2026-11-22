@@ -266,7 +266,37 @@ build_opencv() {
         -DINSTALL_TESTS=OFF -DINSTALL_C_EXAMPLES=OFF -DINSTALL_PYTHON_EXAMPLES=OFF
 }
 
-ALL_DEPS=(expat png jpeg boost tbb gmp mpfr eigen cgal cereal nlopt libnoise draco slvs occt opencv)
+build_python() {
+    local zip
+    zip=$(fetch python https://repo1.maven.org/maven2/com/chaquo/python/target/3.12.12-0/target-3.12.12-0-arm64-v8a.zip \
+        7a4a278ec1fed0e0d0359fbec71d6d481d79a7efbc8e2090267a91046417027a)
+    local tmp="$SOURCE_DIR/python"
+    rm -rf "$tmp"
+    mkdir -p "$tmp"
+    unzip -q "$zip" -d "$tmp"
+
+    mkdir -p "$ORCAMICRO_PREFIX/include" "$ORCAMICRO_PREFIX/lib/python3.12/lib-dynload"
+    rm -rf "$ORCAMICRO_PREFIX/include/python3.12"
+    cp -r "$tmp/include/python3.12" "$ORCAMICRO_PREFIX/include/"
+
+    local lib
+    for lib in libpython3.12.so libcrypto_python.so libssl_python.so libsqlite3_python.so; do
+        cp "$tmp/jniLibs/arm64-v8a/$lib" "$ORCAMICRO_PREFIX/lib/$lib"
+    done
+
+    rm -f "$ORCAMICRO_PREFIX/lib/python3.12/lib-dynload/"*.so
+    local f name
+    for f in "$tmp"/lib-dynload/arm64-v8a/*.so; do
+        name=$(basename "$f")
+        case "$name" in
+            _test*|test_*|_xxtestfuzz*|xxlimited*|xxsubtype*|_ctypes_test*|_tkinter*|nis*|ossaudiodev*|spwd*) continue ;;
+        esac
+        cp "$f" "$ORCAMICRO_PREFIX/lib/python3.12/lib-dynload/$name"
+    done
+    rm -rf "$tmp"
+}
+
+ALL_DEPS=(expat png jpeg boost tbb gmp mpfr eigen cgal cereal nlopt libnoise draco slvs occt opencv python)
 
 run_dep() {
     local name=$1 key stamp="$ORCAMICRO_PREFIX/.stamps/$1"
