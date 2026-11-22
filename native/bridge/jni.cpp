@@ -8,6 +8,7 @@
 
 #include "cad.hpp"
 #include "engine.hpp"
+#include "plugins.hpp"
 
 namespace {
 
@@ -51,4 +52,10 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_io_github_whoxllm_orcamicro_engine_NativeEngine_nativeCadCommand(JNIEnv *env, jobject, jstring request_json)
 {
     return to_jstring(env, orcamicro::cad_command(to_string(env, request_json)));
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_io_github_whoxllm_orcamicro_engine_NativeEngine_nativePluginCommand(JNIEnv *env, jobject, jstring request_json)
+{
+    return to_jstring(env, orcamicro::plugin_command(to_string(env, request_json)));
 }

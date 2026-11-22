@@ -5,6 +5,7 @@
 // the desktop GUI classes the command line depends on.
 
 #include "engine.hpp"
+#include "plugins.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -259,6 +260,10 @@ json run_slice(const json &request)
     set_progress(1, "Loading presets");
     DynamicPrintConfig config = build_config(request, warnings);
 
+    PluginsSession plugins(request, request.at("work_dir").get<std::string>());
+    plugins.prepare_config(config);
+    plugins.install_hook();
+
     set_progress(2, "Loading model");
     Model model = load_model(request.at("model_path").get<std::string>(),
                              request.at("center_x").get<double>(),
@@ -295,6 +300,8 @@ json run_slice(const json &request)
         print.process();
     } catch (const EngineError &) {
         throw;
+    } catch (const PluginSliceError &) {
+        throw;
     } catch (const std::exception &e) {
         throw EngineError("slice", e.what());
     }
@@ -310,11 +317,18 @@ json run_slice(const json &request)
     if (result.gcode_check_result.error_code != 0)
         throw EngineError("export", "Some toolpaths fall outside the printable area or height of this printer.");
 
+    plugins.run_post_process(config, gcode_path);
+
     set_progress(100, "Done");
-    return json{{"ok", true}, {"gcode_path", gcode_path}, {"warnings", warnings}};
+    return json{{"ok", true}, {"gcode_path", gcode_path}, {"warnings", warnings}, {"plugin_messages", plugins.messages_json()}};
 }
 
 } // namespace
+
+std::mutex &engine_mutex()
+{
+    return g_slice_mutex;
+}
 
 std::string slice(const std::string &request_json)
 {
@@ -323,6 +337,8 @@ std::string slice(const std::string &request_json)
     json response;
     try {
         response = run_slice(json::parse(request_json));
+    } catch (const PluginSliceError &e) {
+        response = json{{"ok", false}, {"stage", "plugin"}, {"error", e.what()}, {"plugin_messages", e.messages}};
     } catch (const EngineError &e) {
         response = json{{"ok", false}, {"stage", e.stage}, {"error", e.what()}};
     } catch (const json::exception &e) {
