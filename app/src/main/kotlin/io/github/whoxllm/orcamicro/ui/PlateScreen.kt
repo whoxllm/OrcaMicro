@@ -32,6 +32,13 @@ import kotlin.math.roundToInt
 
 @Composable
 fun PlateScreen(state: UiState, viewModel: MainViewModel) {
+    var pluginsOpen by rememberSaveable { mutableStateOf(false) }
+    if (pluginsOpen) {
+        PluginsScreen(viewModel.plugins) { pluginsOpen = false }
+        return
+    }
+    val plugins by viewModel.plugins.plugins.collectAsState()
+    val enabledPlugins = plugins.count { it.state.enabled }
     val openModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(viewModel::openModel) }
     var showColor by remember { mutableStateOf(false) }
     var showPlacement by rememberSaveable { mutableStateOf(false) }
@@ -49,14 +56,18 @@ fun PlateScreen(state: UiState, viewModel: MainViewModel) {
         },
         bottomBar = {
             Surface(tonalElevation = 2.dp) {
-                Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { viewModel.finishQuickPrintPlacement() }, shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp), modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        OrcaIcon(OrcaAction.Settings, null, Modifier.size(20.dp))
-                        Text(if(state.quickPrintPlacement)tr("В Quick Print") else tr("К печати"), Modifier.padding(start = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    Button(onClick = viewModel::slice, enabled = state.model?.fits == true && state.slice !is SliceState.Running, shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp), modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        Icon(Icons.Default.PlayArrow, null, Modifier.size(20.dp))
-                        Text(tr("Нарезать"), Modifier.padding(start = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Column {
+                    if (enabledPlugins > 0) AssistChip(onClick = { pluginsOpen = true },
+                        label = { Text(tr("Плагинов включено: {0}", enabledPlugins)) }, modifier = Modifier.padding(horizontal = 12.dp))
+                    Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { viewModel.finishQuickPrintPlacement() }, shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp), modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                            OrcaIcon(OrcaAction.Settings, null, Modifier.size(20.dp))
+                            Text(if(state.quickPrintPlacement)tr("В Quick Print") else tr("К печати"), Modifier.padding(start = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        Button(onClick = viewModel::slice, enabled = state.model?.fits == true && state.slice !is SliceState.Running, shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp), modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                            Icon(Icons.Default.PlayArrow, null, Modifier.size(20.dp))
+                            Text(tr("Нарезать"), Modifier.padding(start = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
                 }
             }

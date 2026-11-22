@@ -72,6 +72,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val store = SettingsStore(application)
     private val projects = ProjectStore(application)
     private val engine = EngineClient(application)
+    val plugins = io.github.whoxllm.orcamicro.data.PluginRepository(application, engine)
+
+    private fun refreshPlugins(startup: Boolean = false) {
+        viewModelScope.launch {
+            try { plugins.edit { if (!startup) retryBusy() } }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { showMessage(tr("Не удалось загрузить плагины: {0}", e.message)) }
+        }
+    }
     val cadClient = CadClient(application)
 
     private val _state = MutableStateFlow(UiState())
@@ -115,6 +124,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         viewModelScope.launch { load() }
+        refreshPlugins(startup = true)
     }
 
     // ---- loading -------------------------------------------------------------------------
@@ -626,7 +636,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val resources = withContext(Dispatchers.IO) { EngineResources.ensure(app) }
             var response: EngineResponse? = null
             var crashed = false
-            engine.slice(job.request(resources, model.placement).toJson()).collect { event ->
+            val pluginsRequest = try {
+                plugins.edit { refreshChanged(enabledOnly = true); sliceRequest() }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                fail(tr("Не удалось загрузить плагины: {0}", e.localizedMessage), job.logTail())
+                return@launch
+            }
+            engine.slice(job.request(resources, model.placement, pluginsRequest).toJson()).collect { event ->
                 when (event) {
                     is EngineEvent.Progress -> _state.update {
                         it.copy(slice = SliceState.Running(event.progress.percent, Russian.text(event.progress.text)))
@@ -639,11 +656,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            refreshPlugins()
             val result = response
             when {
                 crashed -> fail(tr("Движок нарезки неожиданно остановился."), job.logTail())
                 result == null -> fail(tr("Движок нарезки не ответил."), job.logTail())
-                !result.ok -> fail(explain(result), job.logTail())
+                !result.ok -> {
+                    val notes = pluginWarnings(result.pluginMessages, plugins.plugins.value.associate { it.state.id to it.name })
+                    fail((listOf(explain(result)) + notes).distinct().joinToString("\n"), job.logTail())
+                }
                 _state.value.model !== state.model || _state.value.inputs !== state.inputs -> _state.update { it.copy(slice=SliceState.Idle,lastResult=null,externalGcode=null,uploadedFile=null,screen=Screen.PLATE,message=tr("Модель или параметры изменились. Повторите нарезку.")) }
                 else -> showPreview(job, result, model, state.modelRgb(), quickPrint)
             }
@@ -656,7 +677,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         try {
             withContext(Dispatchers.IO) { ModelThumbnail.write(gcode,model.mesh,model.placement,color) }
             val toolpaths = withContext(Dispatchers.Default) { gcode.bufferedReader().use { GcodeParser.parse(it) } }
-            val done = SliceState.Done(gcode, toolpaths, result.warnings.map(Russian::text), model.name)
+            val warnings = result.warnings.map(Russian::text) + pluginWarnings(result.pluginMessages, plugins.plugins.value.associate { it.state.id to it.name })
+            val done = SliceState.Done(gcode, toolpaths, warnings, model.name)
             _state.update { it.copy(slice = SliceState.Idle, lastResult = done, screen = if(quickPrint)Screen.PRINT_SETUP else Screen.PREVIEW) }
         } catch (e: OutOfMemoryError) {
             fail(tr("G-code создан, но слишком велик для предпросмотра на этом устройстве."), null)
@@ -670,6 +692,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "model" -> tr("Не удалось прочитать модель")
             "validate" -> tr("OrcaSlicer не может напечатать эту модель")
             "export" -> tr("Ошибка записи G-code")
+            "plugin" -> tr("Ошибка плагина")
             else -> tr("Ошибка нарезки")
         }
         return "${stage}: ${Russian.text(result.error ?: tr("неизвестная ошибка"))}"
@@ -681,6 +704,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun cancelSlice() {
         sliceJob?.cancel()
+        refreshPlugins()
         sliceJob = null
         _state.update { it.copy(slice = SliceState.Idle) }
     }
