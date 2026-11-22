@@ -348,3 +348,20 @@ index db8402e6..e91df4a8 100644
  }
  
  struct TriangleBubble { Vec3f center; double R; };
+diff --git a/src/slic3r/plugin/PythonInterpreter.cpp b/src/slic3r/plugin/PythonInterpreter.cpp
+index bc231c29..8c31e0d6 100644
+--- a/src/slic3r/plugin/PythonInterpreter.cpp
++++ b/src/slic3r/plugin/PythonInterpreter.cpp
+@@ -357,6 +357,12 @@ boost::filesystem::path find_bundled_python_home()
+ {
+     namespace fs = boost::filesystem;
+ 
++    if (const char* env_python = std::getenv("ORCAMICRO_PYTHON_HOME"); env_python && std::strlen(env_python) > 0) {
++        fs::path env_home(env_python);
++        if (valid_python_home(env_home))
++            return env_home;
++    }
++
+ #ifdef __APPLE__
+     fs::path bundle_python = fs::path(resources_dir()).parent_path() / "MacOS" / "python";
+     if (valid_python_home(bundle_python))

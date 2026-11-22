@@ -7,7 +7,8 @@ source "$(dirname "$0")/common.sh"
 require_ndk
 
 out_dir=${1:?usage: build-engine.sh <jniLibs dir>}
-[ -f "$ORCAMICRO_PREFIX/.stamps/opencv" ] || die "Dependencies missing in $ORCAMICRO_PREFIX; run build-deps.sh first"
+[ -f "$ORCAMICRO_PREFIX/.stamps/opencv" ] && [ -f "$ORCAMICRO_PREFIX/.stamps/python" ] ||
+    die "Dependencies missing in $ORCAMICRO_PREFIX; run build-deps.sh first"
 git -C "$ORCA_DIR" apply --reverse --check "$NATIVE_DIR/patches/orcaslicer-$ORCA_TAG-android-engine.patch" 2>/dev/null ||
     die "OrcaSlicer at $ORCA_DIR is not patched; run fetch-orca.sh first"
 
@@ -49,3 +50,13 @@ library="$build/orcamicro-bridge/liborcamicro_engine.so"
 mkdir -p "$out_dir/arm64-v8a"
 "$NDK_BIN/llvm-strip" --strip-unneeded -o "$out_dir/arm64-v8a/liborcamicro_engine.so" "$library"
 log "Engine: $out_dir/arm64-v8a/liborcamicro_engine.so ($(du -h "$out_dir/arm64-v8a/liborcamicro_engine.so" | cut -f1))"
+
+for lib in libpython3.12.so libcrypto_python.so libssl_python.so libsqlite3_python.so; do
+    [ -f "$ORCAMICRO_PREFIX/lib/$lib" ] || die "Missing Python library: $ORCAMICRO_PREFIX/lib/$lib"
+    cp "$ORCAMICRO_PREFIX/lib/$lib" "$out_dir/arm64-v8a/$lib"
+done
+rm -f "$out_dir/arm64-v8a/libpydyn_"*.so
+for f in "$ORCAMICRO_PREFIX/lib/python3.12/lib-dynload/"*.so; do
+    cp "$f" "$out_dir/arm64-v8a/libpydyn_$(basename "$f")"
+done
+log "Python runtime libs staged in $out_dir/arm64-v8a"

@@ -65,6 +65,8 @@ jobs:
           fi
       - name: Fetch OrcaSlicer profiles
         run: ORCAMICRO_ORCA_DIR="$RUNNER_TEMP/orca" bash native/scripts/fetch-orca.sh --profiles-only
+      - name: Stage Python standard library
+        run: bash native/scripts/stage-python-stdlib.sh "$RUNNER_TEMP/python-stdlib.zip"
       # A v* tag sets the version name; otherwise the default in app/build.gradle.kts applies.
       # The version code only has to grow, so it follows the run number.
       - name: Version
@@ -101,6 +103,7 @@ jobs:
         run: >-
           sh ./gradlew :core:test :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug
           -PorcaResourcesDir="$RUNNER_TEMP/orca/resources"
+          -PpythonStdlibZip="$RUNNER_TEMP/python-stdlib.zip"
           -PsourceUrl="https://github.com/$GITHUB_REPOSITORY"
           -PappVersionCode="${{ steps.version.outputs.code }}"
           ${VERSION_NAME:+-PappVersionName=$VERSION_NAME}
