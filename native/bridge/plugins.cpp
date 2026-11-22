@@ -845,6 +845,19 @@ fs::path normalized_dir_path(const std::string &dir)
     return p;
 }
 
+fs::path canonical_or_normalized(const fs::path &p)
+{
+    if (p.empty())
+        return {};
+    boost::system::error_code ec;
+    fs::path out = fs::weakly_canonical(p, ec);
+    if (ec)
+        out = fs::absolute(p).lexically_normal();
+    while (!out.empty() && out.filename() == ".")
+        out = out.parent_path();
+    return out;
+}
+
 } // namespace orcamicro
 
 // ============================================================================
@@ -890,6 +903,13 @@ bool is_inside_allowed_root(const boost::filesystem::path &candidate, const boos
             return false;
     }
     return true;
+}
+
+static bool is_strictly_inside_allowed_root(const boost::filesystem::path &candidate, const boost::filesystem::path &allowed_root)
+{
+    if (!is_inside_allowed_root(candidate, allowed_root))
+        return false;
+    return orcamicro::canonical_or_normalized(candidate) != orcamicro::canonical_or_normalized(allowed_root);
 }
 
 ScopedPluginAuditContext::ScopedPluginAuditContext(const std::string &plugin_key, const std::string &capability_name)
@@ -1225,17 +1245,36 @@ int PluginAuditManager::audit_hook(const char *event, PyObject *args, void *user
         if (targets.empty())
             return finish(0);
 
+        if (event_name == "os.symlink" && targets.size() >= 2 && targets[0].is_relative()) {
+            const fs::path dst_parent = orcamicro::canonical_or_normalized(targets[1]).parent_path();
+            if (!dst_parent.empty())
+                targets[0] = (dst_parent / targets[0]).lexically_normal();
+        }
+
         const bool is_write = category != AuditEventCategory::FsRead;
         const fs::path dir_path = orcamicro::normalized_dir_path(policy.dir);
         const fs::path data_dir = dir_path.empty() ? fs::path() : (dir_path / "data");
         const fs::path plugins_root = dir_path.empty() ? fs::path() : dir_path.parent_path();
 
+        if (!plugins_root.empty() && (event_name == "os.symlink" || event_name == "os.link") &&
+            targets.size() >= 2 && is_inside_allowed_root(targets[1], plugins_root)) {
+            return finish(deny("fs_readwrite", "Creating links under plugins folder is blocked (" + event_name + ")"));
+        }
+
+        auto is_allowed_data_target = [&](const fs::path &target) {
+            if (data_dir.empty())
+                return false;
+            if (is_strictly_inside_allowed_root(target, data_dir))
+                return true;
+            return event_name == "os.mkdir" &&
+                   orcamicro::canonical_or_normalized(target) == orcamicro::canonical_or_normalized(data_dir);
+        };
+
         if (is_write && !plugins_root.empty()) {
             const bool forbidden_plugin_write = std::any_of(targets.begin(), targets.end(), [&](const fs::path &target) {
                 if (!policy.work_dir.empty() && is_inside_allowed_root(target, fs::path(policy.work_dir)))
                     return false;
-                return is_inside_allowed_root(target, plugins_root) &&
-                       (data_dir.empty() || !is_inside_allowed_root(target, data_dir));
+                return is_inside_allowed_root(target, plugins_root) && !is_allowed_data_target(target);
             });
             if (forbidden_plugin_write)
                 return finish(deny("fs_readwrite", "Writing outside plugin data/ is blocked (" + event_name + ")"));
@@ -1244,7 +1283,7 @@ int PluginAuditManager::audit_hook(const char *event, PyObject *args, void *user
         const bool all_always_allowed = std::all_of(targets.begin(), targets.end(), [&](const fs::path &target) {
             if (!is_write && !dir_path.empty() && is_inside_allowed_root(target, dir_path))
                 return true;
-            if (is_write && !data_dir.empty() && is_inside_allowed_root(target, data_dir))
+            if (is_write && is_allowed_data_target(target))
                 return true;
             if (!policy.work_dir.empty() && is_inside_allowed_root(target, fs::path(policy.work_dir)))
                 return true;

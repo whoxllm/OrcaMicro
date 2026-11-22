@@ -41,6 +41,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.net.InetAddress
 import java.net.ServerSocket
+import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
@@ -641,6 +642,126 @@ class PluginEngineTest {
         assertFalse("write to other plugin folder must not succeed", otherInjected.exists())
         assertEquals("""["self_plugin"]""", orderJson.readText())
         assertEquals("# keep", otherPy.readText())
+    }
+
+    @Test
+    fun symlinkSwapAndLinksToPluginJsonAlwaysBlocked() {
+        val pluginsRoot = File(tempRoot, "plugins").apply { mkdirs() }
+        val dir = File(pluginsRoot, "self_plugin").apply { mkdirs() }
+        val initialJson = """{"id":"self_plugin","enabled":false}"""
+        val pluginJson = File(dir, "plugin.json").apply { writeText(initialJson) }
+        val dataDir = File(dir, "data")
+        val symInsideData = File(dataDir, "sym_plugin.json")
+        val hardInsideData = File(dataDir, "hard_plugin.json")
+
+        val plugin = writePlugin(
+            dir,
+            "link_attack.py",
+            """
+            import json, os, orca
+
+            class LinkAttackCap(orca.slicing.SlicingPipelineCapabilityBase):
+                def get_name(self):
+                    return "LinkAttackCap"
+
+                def execute(self, ctx):
+                    if ctx.step != orca.slicing.Step.psGCodePostProcess or not ctx.gcode_path:
+                        return orca.ExecutionResult.success()
+                    cfg = json.loads(self.get_config())
+                    mode = cfg["mode"]
+                    data_dir = orca.host.plugin.storage()
+                    plugin_dir = os.path.dirname(data_dir)
+                    plugin_json = os.path.join(plugin_dir, "plugin.json")
+                    work_dir = os.path.dirname(ctx.gcode_path)
+                    prev_cwd = os.getcwd()
+                    os.chdir(work_dir)
+                    try:
+                        if mode == "swap_data":
+                            checks = {}
+                            for label, fn in [
+                                ("rmdir", lambda: os.rmdir(data_dir)),
+                                ("rename", lambda: os.rename(data_dir, data_dir + "_moved")),
+                                ("symlink_data", lambda: os.symlink("..", data_dir)),
+                                ("symlink_parent", lambda: os.symlink("..", data_dir + "_sym")),
+                                ("write_json", lambda: open(plugin_json, "w", encoding="utf-8").write("TAMPER")),
+                            ]:
+                                try:
+                                    fn()
+                                    checks[label] = "allowed"
+                                except PermissionError:
+                                    checks[label] = "blocked"
+                            with open(os.path.join(work_dir, "swap_checks.json"), "w", encoding="utf-8") as f:
+                                json.dump(checks, f)
+                        elif mode == "symlink_json":
+                            link_path = os.path.join(data_dir, "sym_plugin.json")
+                            try:
+                                os.symlink("../plugin.json", link_path)
+                                return orca.ExecutionResult.success("symlink created")
+                            except PermissionError:
+                                return orca.ExecutionResult.skipped("blocked")
+                        elif mode == "hardlink_json":
+                            link_path = os.path.join(data_dir, "hard_plugin.json")
+                            try:
+                                os.link(plugin_json, link_path)
+                                return orca.ExecutionResult.success("hardlink created")
+                            except PermissionError:
+                                return orca.ExecutionResult.skipped("blocked")
+                        return orca.ExecutionResult.success("done")
+                    finally:
+                        os.chdir(prev_cwd)
+
+            @orca.plugin
+            class LinkAttackPkg(orca.base):
+                def register_capabilities(self):
+                    orca.register_capability(LinkAttackCap)
+            """.trimIndent(),
+        )
+
+        val items = listOf(
+            PluginSliceItem(
+                pluginId = "swap_data",
+                capability = "LinkAttackCap",
+                path = plugin.path,
+                dir = dir.path,
+                config = """{"mode":"swap_data"}""",
+                allowed = PluginPermission.ALL,
+            ),
+            PluginSliceItem(
+                pluginId = "symlink_json",
+                capability = "LinkAttackCap",
+                path = plugin.path,
+                dir = dir.path,
+                config = """{"mode":"symlink_json"}""",
+                allowed = PluginPermission.ALL,
+            ),
+            PluginSliceItem(
+                pluginId = "hardlink_json",
+                capability = "LinkAttackCap",
+                path = plugin.path,
+                dir = dir.path,
+                config = """{"mode":"hardlink_json"}""",
+                allowed = PluginPermission.ALL,
+            ),
+        )
+        val out = sliceBox(plugins = PluginsRequest(pythonHome, items))
+        assertTrue("slice failed: ${out.response.error}", out.response.ok)
+        val blocked = out.response.pluginMessages.filter {
+            it.status == "blocked" && it.permission == PluginPermission.FS_READWRITE
+        }
+        assertEquals(
+            "expected all 3 link/data attacks blocked with fs_readwrite: ${out.response.pluginMessages}",
+            setOf("swap_data", "symlink_json", "hardlink_json"),
+            blocked.map { it.pluginId }.toSet(),
+        )
+        val checksJson = File(out.job.dir, "swap_checks.json").readText()
+        for (op in listOf("rmdir", "rename", "symlink_data", "symlink_parent", "write_json")) {
+            assertTrue("expected '$op':'blocked' in $checksJson", "\"$op\": \"blocked\"" in checksJson)
+        }
+        assertTrue("data/ must still exist as a real directory", dataDir.isDirectory)
+        assertFalse("data/ must not become a symlink", Files.isSymbolicLink(dataDir.toPath()))
+        assertFalse("symlink inside data/ must not be created", symInsideData.exists() || Files.isSymbolicLink(symInsideData.toPath()))
+        assertFalse("hard link inside data/ must not be created", hardInsideData.exists())
+        assertEquals(initialJson, pluginJson.readText())
     }
 
     @Test
