@@ -35,7 +35,7 @@ data class PluginSliceItem(
     val capability: String,
     /** Absolute path of the plugin's main file (not always plugin.py). */
     val path: String,
-    /** The plugin's folder: on sys.path while loading, always readable and writable. */
+    /** The plugin's folder: on sys.path while loading, always readable; writable only in its data/ folder. */
     val dir: String,
     /** JSON text returned to the plugin by self.get_config(). */
     val config: String,
