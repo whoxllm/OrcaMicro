@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  Android 14+ · 64-bit ARM · OrcaSlicer 2.5.1 engine · about 50 MB · Beta
+  Android 14+ · 64-bit ARM · OrcaSlicer 2.5.1 engine · about 60 MB · Beta
 </p>
 
 <p align="center">
@@ -44,6 +44,18 @@
   that Mainsail, Fluidd and OctoPrint show.
 - **Slicing works fully offline.** The network is only used for model catalogs, printers and
   updates, and only when you use them.
+
+### Plugins
+- **Runs OrcaSlicer 2.5.1's Python slicing plugins** on the phone during the slice, with a built-in
+  Python 3.12.
+- **Four OrcaSlicer examples included:** G-code Stamp, Twistify, Fuzzy Slices and Inset. Import your
+  own `.py` plugin, set the order plugins run in, and change each one's settings.
+- **Locked down by default.** A plugin can read its own folder and write only to its own `data/`
+  folder and the slice's work folder. Internet, network sockets, other files, starting programs and
+  background threads each have their own switch, under one permissions switch per plugin. Loading
+  native code is always blocked.
+- **Nothing is granted behind your back.** If an updated plugin asks for more, it stays on and the
+  new permissions appear switched off, marked "Requested".
 
 ### Design parts (parametric CAD)
 - **OrcaSlicer's own Design engine** (Open CASCADE), driven by touch.
@@ -115,6 +127,16 @@ and Klipper then needs `FIRMWARE_RESTART`; for normal control use Pause or Cance
 4. Tap an edge and add a **fillet** or **chamfer**, or add a **hole** on a face.
 5. Tap **To plate**, then slice as usual. The design stays editable in the project.
 
+## First plugin
+
+1. Open **About → ⚙ → Plugins** and read the one-time warning: plugins run their authors' code.
+2. Switch on **G-code Stamp**. If a plugin asks for permissions, the app lists them and you choose.
+3. A chip on the plate shows how many plugins are on. Slice as usual; the second line of the G-code
+   is now the stamp comment.
+4. Tap a plugin for its settings and permissions. **Import plugin** adds your own `.py` file.
+
+If a plugin tries something it isn't allowed to, the slice warnings say what was blocked.
+
 ## Touch gestures
 
 | Gesture | 3D view |
@@ -150,7 +172,9 @@ so attach a file you already have. [Catalog guide (RU)](docs/MODELS.md)
 
 - **One model, one plate and one material** at a time. 3MF objects are combined into one model.
 - Not supported yet: multi-material and AMS, painting (color, supports, seams), modifiers, variable
-  layer height, multiple plates, OBJ import, add-ons (OrcaSlicer plugins), and Bambu Lab printers.
+  layer height, multiple plates, OBJ import, and Bambu Lab printers.
+- **Plugins:** only slicing plugins run; other OrcaSlicer plugin types are listed but can't run yet.
+  Permissions are a safety net, not a full sandbox, so only install plugins you trust.
 - G-code is not guaranteed to match desktop OrcaSlicer for every model.
   [Compatibility (RU)](docs/COMPATIBILITY.md)
 
@@ -160,7 +184,7 @@ so attach a file you already have. [Catalog guide (RU)](docs/MODELS.md)
 |---|---|
 | `app/` | The Android app: Kotlin, Jetpack Compose and OpenGL ES 3 |
 | `core/` | Plain Kotlin: models, OrcaSlicer profiles and settings, G-code parsing, printer and catalog clients, updater. Unit-tested on any JVM |
-| `native/` | Builds OrcaSlicer 2.5.1's `libslic3r` (including its CAD core and Open CASCADE) for Android, with a JNI bridge into `liborcamicro_engine.so` |
+| `native/` | Builds OrcaSlicer 2.5.1's `libslic3r` (including its CAD core and Open CASCADE) for Android, with a JNI bridge into `liborcamicro_engine.so` and an embedded Python 3.12 for plugins |
 
 Slicing and CAD each run in their own Android process, so a crash in native code can't take the app
 down, and cancelling a slice never touches an open design. Every change is built and tested on an
@@ -180,5 +204,6 @@ by SoftFever and contributors, based on Bambu Studio, PrusaSlicer and Slic3r. Or
 unofficial project and is not affiliated with the OrcaSlicer team.
 
 License: **[AGPL-3.0](LICENSE)**. Open CASCADE Technology is under LGPL-2.1 with the Open CASCADE
-exception, the SolveSpace solver under GPL-3.0, and Inter under [SIL OFL 1.1](third_party/Inter-OFL.txt).
+exception, the SolveSpace solver under GPL-3.0, CPython under the PSF License (Android build by
+Chaquopy, MIT), and Inter under [SIL OFL 1.1](third_party/Inter-OFL.txt).
 Third-party notices are in [NOTICE](third_party/NOTICE.txt).
